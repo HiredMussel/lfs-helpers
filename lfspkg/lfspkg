@@ -10,11 +10,11 @@ create_pkg() {
     [ $# -eq 0 ] \
         && echo "No package name provided" \
         && exit 1
-    
+
     [ ! -d $PACKAGE_PATH ] \
         && echo "Please create $PACKAGE_PATH to proceed" \
         && exit 1
-    
+
     echo "Creating package $1 in $PACKAGE_PATH/$1"
 
     [ ! -d $PACKAGE_PATH/$1 ] \
@@ -30,9 +30,24 @@ create_pkg() {
     exit 0
 }
 
-## Script for creating packages
+## Script for retrieving a package key
+get_package_data() {
+    [ ! -e $PACKAGE_PATH/$1/config.json ] \
+        && "Could not find package configuration for package $1" \
+        && exit 1
 
+    cat $PACKAGE_PATH/$1/config.json | \
+        sed -n "s@{.*\"$2\":\ *\"\(.*\)\(\".*\)@\1@p"
+}
 
+## Script for adding data to the package's config.json
+add_package_data() {
+    [ ! -e $PACKAGE_PATH/$1/config.json ] \
+        && "Could not find package configuration for package $1" \
+        && exit 1
+
+    sed -i "s@}@\,\"$2\":\"$3\"}@g" $PACKAGE_PATH/$1/config.json
+}
 
 ## Script for checking the version of a package given a URL to check
 
