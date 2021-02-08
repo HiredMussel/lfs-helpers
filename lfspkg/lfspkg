@@ -1,0 +1,38 @@
+#!/bin/bash
+
+PACKAGE_PATH=/usr/pkg
+
+# Helper functions for creating and editing the package config (JSON)
+
+# Create the package - a package is just a directory containing a json file with
+# information about the package
+create_pkg() {
+    [ $# -eq 0 ] \
+        && echo "No package name provided" \
+        && exit 1
+    
+    [ ! -d $PACKAGE_PATH ] \
+        && echo "Please create $PACKAGE_PATH to proceed" \
+        && exit 1
+    
+    echo "Creating package $1 in $PACKAGE_PATH/$1"
+
+    [ ! -d $PACKAGE_PATH/$1 ] \
+        && mkdir $PACKAGE_PATH/$1
+
+    [ -e $PACKAGE_PATH/$1/config.json ] \
+        && echo "Package already exists!" \
+        && exit 1
+
+    touch $PACKAGE_PATH/$1/config.json
+    echo \{\"name\":\"$1\"\} > $PACKAGE_PATH/$1/config.json
+    echo "Created package $1 successfully"
+    exit 0
+}
+
+## Script for creating packages
+
+
+
+## Script for checking the version of a package given a URL to check
+
