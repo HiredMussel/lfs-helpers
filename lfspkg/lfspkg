@@ -59,7 +59,7 @@ get_pkg_data() {
         && exit 1
 
     [ ! -e $PACKAGE_PATH/$1/PKGBUILD ] \
-        && echo "Could not find package configuration" \
+        && echo "Could not find configuration for package $2" \
         && exit 1
 
     sed -n "s@#\s*$2=\s*\(.*\)\($\)@\1@" $1
