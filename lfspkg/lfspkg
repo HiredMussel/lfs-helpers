@@ -25,7 +25,7 @@ create_pkg() {
         && exit 1
 
     touch $PACKAGE_PATH/$1/PKGBUILD
-    cat << EOF > $PACKAGE_PATH/$1/control
+    cat << EOF > $PACKAGE_PATH/$1/PKGBUILD
 #!/bin/bash
 #
 # [General]
