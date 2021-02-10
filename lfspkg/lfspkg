@@ -27,23 +27,24 @@ create_pkg() {
     touch $PACKAGE_PATH/$1/control.json
     cat << EOF > $PACKAGE_PATH/$1/control
 #!/bin/bash
+#
 # [General]
-
+#
 # [Version]
 # stable_version=
 # version_listing=
 # version_scheme=
 # latest_version=
-
+#
 # [Build]
 # distfiles=
 # configure=
 # cflags=
 # cxxflags=
-
+#
 # [Dependencies]
 # depends_on=
-# depended_by=
+# depended_on_by=
 # lock=
 EOF
     echo "Created package $1 successfully"
