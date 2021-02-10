@@ -2,9 +2,9 @@
 
 PACKAGE_PATH=/usr/pkg
 
-# Helper functions for creating and editing the package config (JSON)
+# Helper functions for creating and editing the package config
 
-# Create the package - a package is just a directory containing a json file with
+# Create the package - a package is just a directory containing a ini file with
 # information about the package
 create_pkg() {
     [ $# -eq 0 ] \
