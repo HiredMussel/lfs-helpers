@@ -20,34 +20,31 @@ create_pkg() {
     [ ! -d $PACKAGE_PATH/$1 ] \
         && mkdir $PACKAGE_PATH/$1
 
-    [ -e $PACKAGE_PATH/$1/config.json ] \
+    [ -e $PACKAGE_PATH/$1/control.json ] \
         && echo "Package already exists!" \
         && exit 1
 
-    touch $PACKAGE_PATH/$1/config.json
-    echo \{\"name\":\"$1\"\} > $PACKAGE_PATH/$1/config.json
+    touch $PACKAGE_PATH/$1/control.json
+    cat << EOF > $PACKAGE_PATH/$1/control
+[General]
+
+[Version]
+stable_version=
+version_listing=
+version_scheme=
+latest_version=
+
+[Build]
+distfiles=
+configure=
+cflags=
+cxxflags=
+
+[Dependencies]
+depends_on=
+depended_by=
+lock=
+EOF
     echo "Created package $1 successfully"
     exit 0
 }
-
-## Script for retrieving a package key
-get_package_data() {
-    [ ! -e $PACKAGE_PATH/$1/config.json ] \
-        && "Could not find package configuration for package $1" \
-        && exit 1
-
-    cat $PACKAGE_PATH/$1/config.json | \
-        sed -n "s@{.*\"$2\":\ *\"\(.*\)\(\".*\)@\1@p"
-}
-
-## Script for adding data to the package's config.json
-add_package_data() {
-    [ ! -e $PACKAGE_PATH/$1/config.json ] \
-        && "Could not find package configuration for package $1" \
-        && exit 1
-
-    sed -i "s@}@\,\"$2\":\"$3\"}@g" $PACKAGE_PATH/$1/config.json
-}
-
-## Script for checking the version of a package given a URL to check
-
