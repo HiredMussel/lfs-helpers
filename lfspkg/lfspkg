@@ -43,6 +43,7 @@ create_pkg() {
 # depends_on=
 # depended_on_by=
 # lock=
+
 EOF
     echo "Created package $1 successfully"
 }
