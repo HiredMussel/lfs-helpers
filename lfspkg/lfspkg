@@ -20,11 +20,11 @@ create_pkg() {
     [ ! -d $PACKAGE_PATH/$1 ] \
         && mkdir $PACKAGE_PATH/$1
 
-    [ -e $PACKAGE_PATH/$1/control.json ] \
+    [ -e $PACKAGE_PATH/$1/PKGBUILD ] \
         && echo "Package already exists!" \
         && exit 1
 
-    touch $PACKAGE_PATH/$1/control.json
+    touch $PACKAGE_PATH/$1/PKGBUILD
     cat << EOF > $PACKAGE_PATH/$1/control
 #!/bin/bash
 #
