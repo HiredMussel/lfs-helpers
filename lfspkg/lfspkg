@@ -27,7 +27,7 @@ create_pkg() {
     touch $PACKAGE_PATH/$1/PKGBUILD
     cat << EOF > $PACKAGE_PATH/$1/PKGBUILD
 #!/bin/bash
-#
+
 # [General]
 #
 # [Version]
