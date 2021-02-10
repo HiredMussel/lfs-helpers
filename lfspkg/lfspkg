@@ -38,9 +38,6 @@ create_pkg() {
 #
 # [Build]
 # distfiles=
-# configure=
-# cflags=
-# cxxflags=
 #
 # [Dependencies]
 # depends_on=
