@@ -13,7 +13,7 @@ create_pkg() {
 
     [ ! -d $PACKAGE_PATH ] \
         && echo "Please create $PACKAGE_PATH to proceed" \
-        && exit 1
+        && exit 2
 
     echo "Creating package $1 in $PACKAGE_PATH/$1"
 
@@ -22,7 +22,7 @@ create_pkg() {
 
     [ -e $PACKAGE_PATH/$1/PKGBUILD ] \
         && echo "Package already exists!" \
-        && exit 1
+        && exit 3
 
     touch $PACKAGE_PATH/$1/PKGBUILD
     cat << EOF > $PACKAGE_PATH/$1/PKGBUILD
@@ -56,11 +56,11 @@ get_pkg_data() {
 
     [ $# -eq 1 ] \
         && echo "No configuration option selected" \
-        && exit 1
+        && exit 2
 
     [ ! -e $PACKAGE_PATH/$1/PKGBUILD ] \
         && echo "Could not find configuration for package $2" \
-        && exit 1
+        && exit 3
 
     sed -n "s@#\s*$2=\s*\(.*\)\($\)@\1@" $PACKAGE_PATH/$1/PKGBUILD
 }
@@ -73,11 +73,11 @@ change_pkg_data() {
 
     [ $# -eq 1 ] \
         && echo "No configuration option selected" \
-        && exit 1
+        && exit 2
 
     [ ! -e $PACKAGE_PATH/$1/PKGBUILD ] \
         && echo "Could not find package configuration" \
-        && exit 1
+        && exit 3
 
     sed -i "s@#\s*$2=\(.*\)\($\)@\0$3@" $PACKAGE_PATH/$1/PKGBUILD
 }
@@ -90,11 +90,11 @@ add_pkg_data() {
 
     [ $# -eq 1 ] \
         && echo "No configuration option selected" \
-        && exit 1
+        && exit 2
 
     [ ! -e $PACKAGE_PATH/$1/PKGBUILD ] \
         && echo "Could not find package configuration" \
-        && exit 1
+        && exit 3
 
     sed -i "s@#\[General\]@\0\n#\ $2=$3@" $PACKAGE_PATH/$1/PKGBUILD
 }
@@ -107,11 +107,11 @@ set_pkg_data() {
 
     [ $# -eq 1 ] \
         && echo "No configuration option selected" \
-        && exit 1
+        && exit 2
 
     [ -z $(get_pkg_data $1 $2) ] \
         && add_pkg_data $1 $2 $3 \
-        && exit 1
+        && exit
 
     change_pkg_data $1 $2 $3
 }
