@@ -109,6 +109,10 @@ set_pkg_data() {
         && echo "No configuration option selected" \
         && exit 2
 
+    [ ! -e $PACKAGE_PATH/$1/PKGBUILD ] \
+        && echo "Could not find configuration for package $2" \
+        && exit 3
+
     [ -z $(get_pkg_data $1 $2) ] \
         && add_pkg_data $1 $2 $3 \
         && exit
