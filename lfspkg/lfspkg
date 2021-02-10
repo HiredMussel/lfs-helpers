@@ -62,7 +62,7 @@ get_pkg_data() {
         && echo "Could not find configuration for package $2" \
         && exit 1
 
-    sed -n "s@#\s*$2=\s*\(.*\)\($\)@\1@" $1
+    sed -n "s@#\s*$2=\s*\(.*\)\($\)@\1@" $PACKAGE_PATH/$1/PKGBUILD
 }
 
 # Change a key in a package
@@ -79,7 +79,7 @@ change_pkg_data() {
         && echo "Could not find package configuration" \
         && exit 1
 
-    sed -i "s@#\s*$2=\(.*\)\($\)@\0$3@" $1
+    sed -i "s@#\s*$2=\(.*\)\($\)@\0$3@" $PACKAGE_PATH/$1/PKGBUILD
 }
 
 # Add a key to a package
@@ -96,7 +96,7 @@ add_pkg_data() {
         && echo "Could not find package configuration" \
         && exit 1
 
-    sed -i "s@#\[General\]@\0\n#\ $2=$3@" $1
+    sed -i "s@#\[General\]@\0\n#\ $2=$3@" $PACKAGE_PATH/$1/PKGBUILD
 }
 
 # Set a key in a package
