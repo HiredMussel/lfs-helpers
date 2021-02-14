@@ -2,10 +2,21 @@
 
 PACKAGE_PATH=/usr/pkg
 
+# Process the arguments to the function
+while getopts ":CMG"; do 
+    case ${opt} in
+        C ) create_pkg $2
+        M ) modify_pkg_data $2 $3 $4
+        G ) get_pkg_data $2 $3
+    esac
+done
+exit
+
 # Helper functions for creating and editing the package config
 
-# Create the package - a package is just a directory containing a ini file with
-# information about the package
+# Create the package - a package is a shell script containing instructions on
+# how the package is to be installed with the configuration options set by 
+# specific comments within the file.
 create_pkg() {
     [ $# -eq 0 ] \
         && echo "No package name provided" \
@@ -100,7 +111,7 @@ add_pkg_data() {
 }
 
 # Set a key in a package
-set_pkg_data() {
+modify_pkg_data() {
     [ $# -eq 0 ] \
         && echo "No package name provided" \
         && exit 1
