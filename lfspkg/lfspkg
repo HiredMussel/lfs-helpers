@@ -1,13 +1,13 @@
 #!/bin/bash
 
-PACKAGE_PATH=/usr/pkg
+PACKAGE_PATH=.
 
 # Process the arguments to the function
 while getopts ":CMG"; do 
     case ${opt} in
         C ) create_pkg $2
-        M ) modify_pkg_data $2 $3 $4
-        G ) get_pkg_data $2 $3
+        M ) modify_pkg_data $3 $4 $2
+        G ) get_pkg_data $3 $2
     esac
 done
 exit
@@ -62,35 +62,39 @@ EOF
 # Retrieve a key from a package
 get_pkg_data() {
     [ $# -eq 0 ] \
-        && echo "No package name provided" \
+        && echo "No configuration option selected" \
         && exit 1
 
     [ $# -eq 1 ] \
-        && echo "No configuration option selected" \
+        && echo  "All provided packages changed successfully" \
         && exit 2
 
-    [ ! -e $PACKAGE_PATH/$1/PKGBUILD ] \
+    [ ! -e $PACKAGE_PATH/$2/PKGBUILD ] \
         && echo "Could not find configuration for package $2" \
         && exit 3
 
-    sed -n "s@#\s*$2=\s*\(.*\)\($\)@\1@" $PACKAGE_PATH/$1/PKGBUILD
+    sed -n "s@#\s*$1=\s*\(.*\)\($\)@\1@p" $PACKAGE_PATH/$2/PKGBUILD
 }
 
 # Change a key in a package
 change_pkg_data() {
     [ $# -eq 0 ] \
-        && echo "No package name provided" \
+        && echo "No configuration option selected" \
         && exit 1
 
     [ $# -eq 1 ] \
-        && echo "No configuration option selected" \
+        && echo "No new config provided" \
+        && exit 1
+
+    [ $# -eq 2 ] \
+        && echo  "All provided packages changed successfully" \
         && exit 2
 
-    [ ! -e $PACKAGE_PATH/$1/PKGBUILD ] \
+    [ ! -e $PACKAGE_PATH/$3/PKGBUILD ] \
         && echo "Could not find package configuration" \
         && exit 3
 
-    sed -i "s@#\s*$2=\(.*\)\($\)@\0$3@" $PACKAGE_PATH/$1/PKGBUILD
+    sed -i "s@#\s*$1=\(.*\)\($\)@\0$2@" $PACKAGE_PATH/$3/PKGBUILD
 }
 
 # Add a key to a package
@@ -103,11 +107,11 @@ add_pkg_data() {
         && echo "No configuration option selected" \
         && exit 2
 
-    [ ! -e $PACKAGE_PATH/$1/PKGBUILD ] \
+    [ ! -e $PACKAGE_PATH/$3/PKGBUILD ] \
         && echo "Could not find package configuration" \
         && exit 3
 
-    sed -i "s@#\[General\]@\0\n#\ $2=$3@" $PACKAGE_PATH/$1/PKGBUILD
+    sed -i "s@#\[General\]@\0\n#\ $1=$2@" $PACKAGE_PATH/$3/PKGBUILD
 }
 
 # Set a key in a package
