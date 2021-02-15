@@ -2,16 +2,6 @@
 
 PACKAGE_PATH=.
 
-# Process the arguments to the function
-while getopts ":CMG"; do 
-    case ${opt} in
-        C ) create_pkg $2
-        M ) modify_pkg_data $3 $4 $2
-        G ) get_pkg_data $3 $2
-    esac
-done
-exit
-
 # Helper functions for creating and editing the package config
 
 # Create the package - a package is a shell script containing instructions on
@@ -73,7 +63,13 @@ get_pkg_data() {
         && echo "Could not find configuration for package $2" \
         && exit 3
 
-    sed -n "s@#\s*$1=\s*\(.*\)\($\)@\1@p" $PACKAGE_PATH/$2/PKGBUILD
+    value=$(sed -n "s@#\s*$1=\s*\(.*\)\($\)@\1@p" $PACKAGE_PATH/$2/PKGBUILD)
+
+    [ -z $value ] \
+        && echo "null" \
+        && exit
+
+    echo $value
 }
 
 # Change a key in a package
@@ -94,11 +90,13 @@ change_pkg_data() {
         && echo "Could not find package configuration" \
         && exit 3
 
-    sed -i "s@#\s*$1=\(.*\)\($\)@\0$2@" $PACKAGE_PATH/$3/PKGBUILD
+    sed -i "s@\(#\s*$1=\).*@\1$2@" $PACKAGE_PATH/$3/PKGBUILD
 }
 
 # Add a key to a package
 add_pkg_data() {
+    echo "at this point"
+
     [ $# -eq 0 ] \
         && echo "No package name provided" \
         && exit 1
@@ -124,13 +122,26 @@ modify_pkg_data() {
         && echo "No configuration option selected" \
         && exit 2
 
-    [ ! -e $PACKAGE_PATH/$1/PKGBUILD ] \
-        && echo "Could not find configuration for package $2" \
+    [ ! -e $PACKAGE_PATH/$3/PKGBUILD ] \
+        && echo "Could not find configuration for package $3" \
         && exit 3
 
-    [ -z $(get_pkg_data $1 $2) ] \
+    [ -z $(get_pkg_data $1 $3) ] \
         && add_pkg_data $1 $2 $3 \
         && exit
 
     change_pkg_data $1 $2 $3
 }
+
+# Process the arguments to the function
+while getopts ":CMG" opt; do 
+    case "${opt}" in
+        C ) create_pkg $2
+        ;;
+        M ) modify_pkg_data $2 $3 $4
+        ;;
+        G ) get_pkg_data $2 $3
+        ;;
+    esac
+done
+exit
