@@ -63,13 +63,7 @@ get_pkg_data() {
         && echo "Could not find configuration for package $2" \
         && exit 3
 
-    value=$(sed -n "s@#\s*$1=\s*\(.*\)\($\)@\1@p" $PACKAGE_PATH/$2/PKGBUILD)
-
-    [ -z $value ] \
-        && echo "null" \
-        && exit
-
-    echo $value
+    sed -n "s@#\s*$1=\s*\(.*\)\($\)@\1@p" $PACKAGE_PATH/$2/PKGBUILD
 }
 
 # Change a key in a package
@@ -95,8 +89,6 @@ change_pkg_data() {
 
 # Add a key to a package
 add_pkg_data() {
-    echo "at this point"
-
     [ $# -eq 0 ] \
         && echo "No package name provided" \
         && exit 1
@@ -109,7 +101,7 @@ add_pkg_data() {
         && echo "Could not find package configuration" \
         && exit 3
 
-    sed -i "s@#\[General\]@\0\n#\ $1=$2@" $PACKAGE_PATH/$3/PKGBUILD
+    sed -i "s@#\s*\[General\]@\0\n#\ $1=$2@" $PACKAGE_PATH/$3/PKGBUILD
 }
 
 # Set a key in a package
@@ -126,11 +118,11 @@ modify_pkg_data() {
         && echo "Could not find configuration for package $3" \
         && exit 3
 
+    change_pkg_data $1 $2 $3
+
     [ -z $(get_pkg_data $1 $3) ] \
         && add_pkg_data $1 $2 $3 \
-        && exit
-
-    change_pkg_data $1 $2 $3
+        || exit
 }
 
 # Process the arguments to the function
