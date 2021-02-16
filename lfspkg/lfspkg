@@ -9,12 +9,12 @@ PACKAGE_PATH=.
 # specific comments within the file.
 create_pkg() {
     [ $# -eq 0 ] \
-        && echo "No package name provided" \
-        && exit 1
+        && echo "All packages created successfully" \
+        && return 1
 
     [ ! -d $PACKAGE_PATH ] \
         && echo "Please create $PACKAGE_PATH to proceed" \
-        && exit 2
+        && return 2
 
     echo "Creating package $1 in $PACKAGE_PATH/$1"
 
@@ -22,8 +22,8 @@ create_pkg() {
         && mkdir $PACKAGE_PATH/$1
 
     [ -e $PACKAGE_PATH/$1/PKGBUILD ] \
-        && echo "Package already exists!" \
-        && exit 3
+        && echo "Package $1 already exists" \
+        && return 3
 
     touch $PACKAGE_PATH/$1/PKGBUILD
     cat << EOF > $PACKAGE_PATH/$1/PKGBUILD
@@ -47,22 +47,20 @@ create_pkg() {
 
 EOF
     echo "Created package $1 successfully"
-
-    create_pkg ${@:2}
 }
 
 # Retrieve a key from a package
 get_pkg_data() {
     [ $# -eq 0 ] \
         && echo "No configuration option selected" \
-        && exit 1
+        && return 1
 
     [ $# -eq 1 ] \
-        && exit
+        && return
 
     [ ! -e $PACKAGE_PATH/$2/PKGBUILD ] \
         && echo "Could not find configuration for package $2" \
-        && exit 3
+        && return 3
 
     sed -n "s@#\s*$1=\s*\(.*\)\($\)@\1@p" $PACKAGE_PATH/$2/PKGBUILD
 
@@ -73,18 +71,18 @@ get_pkg_data() {
 change_pkg_data() {
     [ $# -eq 0 ] \
         && echo "No configuration option selected" \
-        && exit 1
+        && return 1
 
     [ $# -eq 1 ] \
         && echo "No new value for option $1 provided" \
-        && exit 2
+        && return 2
 
     [ $# -eq 2 ] \
-        && exit
+        && return
 
     [ ! -e $PACKAGE_PATH/$3/PKGBUILD ] \
         && echo "Could not find package configuration" \
-        && exit 3
+        && return 3
 
     sed -i "s@\(#\s*$1=\).*@\1$2@" $PACKAGE_PATH/$3/PKGBUILD
 }
@@ -93,18 +91,18 @@ change_pkg_data() {
 add_pkg_data() {
     [ $# -eq 0 ] \
         && echo "No package name provided" \
-        && exit 1
+        && return 1
 
     [ $# -eq 1 ] \
         && echo "No configuration option selected" \
-        && exit 2
+        && return 2
 
     [ $# -eq 2 ] \
-        && exit
+        && return
 
     [ ! -e $PACKAGE_PATH/$3/PKGBUILD ] \
         && echo "Could not find package configuration" \
-        && exit 3
+        && return 3
 
     sed -i "s@#\s*\[General\]@\0\n#\ $1=$2@" $PACKAGE_PATH/$3/PKGBUILD
 }
@@ -113,18 +111,18 @@ add_pkg_data() {
 modify_pkg_data() {
     [ $# -eq 0 ] \
         && echo "No configuration option selected" \
-        && exit 1
+        && return 1
 
     [ $# -eq 1 ] \
         && echo "No new value for option $1 provided" \
-        && exit 2
+        && return 2
 
     [ $# -eq 2 ] \
-        && exit
+        && return
 
     [ ! -e $PACKAGE_PATH/$3/PKGBUILD ] \
         && echo "Could not find configuration for package $3" \
-        && exit 3
+        && return 3
 
     change_pkg_data $1 $2 $3
 
@@ -138,10 +136,10 @@ modify_pkg_data() {
 delete_pkg_data() {
     [ $# -eq 0 ] \
         && echo "No key to delete selected" \
-        && exit 1
+        && return 1
 
     [ $# -eq 1 ] \
-        && exit
+        && return
 
     sed -i "s@\(#\s*$1=\).*@\1@" $PACKAGE_PATH/$2/PKGBUILD
 
@@ -149,28 +147,22 @@ delete_pkg_data() {
 }
 
 [ ! -z $(echo $1 | grep -- "\-.*C.*") ] \
-    && echo "Will attempt to create packages ${@:2}"
+    && echo "Will attempt to create packages ${@:2}" \
+    && for package in ${@:2}
+        do
+            create_pkg $package
+        done
 
 [ ! -z $(echo $1 | grep -- "\-.*M.*") ] \
-    && echo "Will attempt to set $2 to $3 for packages ${@:4}"
+    && echo "Will attempt to set $2 to $3 for packages ${@:4}" \
+    && modify_pkg_data $2 $3 ${@:4}
 
 [ ! -z $(echo $1 | grep -- "\-.*D.*") ] \
-    && echo "Will attempt to clear the value of $2 for packages ${@:3}"
+    && echo "Will attempt to clear the value of $2 for packages ${@:3}" \
+    && delete_pkg_data $2 ${@:3}
 
 [ ! -z $(echo $1 | grep -- "\-.*G.*") ] \
-    && echo "Will attempt to return the value of $2 for packages ${@:3}"
+    && echo "Will attempt to return the value of $2 for packages ${@:3}" \
+    && get_pkg_data $2 ${@:3}
 
-# Process the arguments to the function
-while getopts ":CMGD" opt; do 
-    case "${opt}" in
-        C ) create_pkg ${@:2}
-        ;;
-        M ) modify_pkg_data $2 $3 ${@:4}
-        ;;
-        G ) get_pkg_data $2 ${@:3}
-        ;;
-        D ) delete_pkg_data $2 ${@:3}
-        ;;
-    esac
-done
 exit
