@@ -148,6 +148,18 @@ delete_pkg_data() {
     delete_pkg_data $1 ${@:3}
 }
 
+[ ! -z $(echo $1 | grep -- "\-.*C.*") ] \
+    && echo "Will attempt to create packages ${@:2}"
+
+[ ! -z $(echo $1 | grep -- "\-.*M.*") ] \
+    && echo "Will attempt to set $2 to $3 for packages ${@:4}"
+
+[ ! -z $(echo $1 | grep -- "\-.*D.*") ] \
+    && echo "Will attempt to clear the value of $2 for packages ${@:3}"
+
+[ ! -z $(echo $1 | grep -- "\-.*G.*") ] \
+    && echo "Will attempt to return the value of $2 for packages ${@:3}"
+
 # Process the arguments to the function
 while getopts ":CMGD" opt; do 
     case "${opt}" in
