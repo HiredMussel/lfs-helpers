@@ -146,25 +146,38 @@ delete_pkg_data() {
     delete_pkg_data $1 ${@:3}
 }
 
+# Handle the cases where we take in a configuration option
+[ ! -z $(echo $1 | grep -- "\-.*[MDG].*") ] \
+    && config_option=$2 \
+    && set -- "-${1}" "${@:3}"
+
+# Handle the cases where we take in a value for the configuration option
+[ ! -z $(echo $1 | grep -- "\-.*[MDG].*") ] \
+    && config_value=$2 \
+    && set -- "-${1}" "${@:3}"
+
+packages=$(echo ${@:2} | tr " " "\n" | sort -u | tr "\n" " ")
+
+echo "Will attempt to affect the following packages:"
+echo $packages
+
 [ ! -z $(echo $1 | grep -- "\-C.*") ] \
-    && echo "Will attempt to create packages ${@:2}" \
-    && set -- "-${1:2}" "${@:2}" \
-    && for package in ${@:2}
+    && echo "Will attempt to create packages $packages" \
+    && for package in $packages
        do
             create_pkg $package
        done
 
 [ ! -z $(echo $1 | grep -- "\-M.*") ] \
-    && echo "Will attempt to set $2 to $3 for packages ${@:4}" \
-    && set -- "-${1:2}" "${@:2}" \
-    && modify_pkg_data $2 $3 ${@:4}
+    && echo "Will attempt to set $config_option to $config_value for packages $packages" \
+    && modify_pkg_data $config_option $config_value $packages
 
 [ ! -z $(echo $1 | grep -- "\-D.*") ] \
-    && echo "Will attempt to clear the value of $2 for packages ${@:3}" \
-    && delete_pkg_data $2 ${@:3}
+    && echo "Will attempt to clear the value of $config_option for packages $packages" \
+    && delete_pkg_data $config_option $packages
 
 [ ! -z $(echo $1 | grep -- "\-G.*") ] \
-    && echo "Will attempt to return the value of $2 for packages ${@:3}" \
-    && get_pkg_data $2 ${@:3}
+    && echo "Will attempt to return the value of $config_option for packages $packages" \
+    && get_pkg_data $config_option $packages
 
 exit
