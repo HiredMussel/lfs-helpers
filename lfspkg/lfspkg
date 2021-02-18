@@ -85,6 +85,8 @@ change_pkg_data() {
         && return 3
 
     sed -i "s@\(#\s*$1=\).*@\1$2@" $PACKAGE_PATH/$3/PKGBUILD
+
+    echo "Succesfully set $1 to $2 for package $3"
 }
 
 # Add a key to a package
@@ -105,6 +107,8 @@ add_pkg_data() {
         && return 3
 
     sed -i "s@#\s*\[General\]@\0\n#\ $1=$2@" $PACKAGE_PATH/$3/PKGBUILD
+
+    echo "Successfully set key $1 to package $3 with value $2"
 }
 
 # Set a key in a package
@@ -143,6 +147,8 @@ delete_pkg_data() {
 
     sed -i "s@\(#\s*$1=\).*@\1@" $PACKAGE_PATH/$2/PKGBUILD
 
+    echo "Successfully cleared value of $1 for package $2"
+
     delete_pkg_data $1 ${@:3}
 }
 
@@ -163,6 +169,7 @@ echo $packages
 
 [ ! -z $(echo $1 | grep -- "\-C.*") ] \
     && echo "Will attempt to create packages $packages" \
+    && set -- "-${1:4}" "${@:3}" \
     && for package in $packages
        do
             create_pkg $package
@@ -170,14 +177,17 @@ echo $packages
 
 [ ! -z $(echo $1 | grep -- "\-M.*") ] \
     && echo "Will attempt to set $config_option to $config_value for packages $packages" \
+    && set -- "-${1:4}" "${@:3}" \
     && modify_pkg_data $config_option $config_value $packages
 
 [ ! -z $(echo $1 | grep -- "\-D.*") ] \
     && echo "Will attempt to clear the value of $config_option for packages $packages" \
+    && set -- "-${1:4}" "${@:3}" \
     && delete_pkg_data $config_option $packages
 
 [ ! -z $(echo $1 | grep -- "\-G.*") ] \
     && echo "Will attempt to return the value of $config_option for packages $packages" \
+    && set -- "-${1:4}" "${@:3}" \
     && get_pkg_data $config_option $packages
 
 exit
