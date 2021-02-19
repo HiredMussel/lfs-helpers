@@ -154,16 +154,16 @@ delete_pkg_data() {
 
 parse_arguments() {
     [ ! -z $(echo $1 | grep -- "^\s*C.*") ] \
-        && echo " * Will attempt to create the packages"
+        && echo " * Create the packages"
 
     [ ! -z $(echo $1 | grep -- "^\s*M.*") ] \
-        && echo " * Will attempt to set $2 to $3 for each package"
+        && echo " * Set $2 to $3 for each package"
 
     [ ! -z $(echo $1 | grep -- "^\s*D.*") ] \
-        && echo " * Will attempt to clear the value of $2 for each package"
+        && echo " * Clear the value of $2 for each package"
 
     [ ! -z $(echo $1 | grep -- "^\s*G.*") ] \
-        && echo " * Will return the value of $2 for each package"
+        && echo " * Return the value of $2 for each package"
 
     newarg=$(echo $1 | sed 's@[\s\-]*.@@')
 
