@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# [General]
+#
+# [Version]
+# stable_version=
+# version_listing=
+# version_scheme=
+# latest_version=
+#
+# [Build]
+# distfiles=
+#
+# [Dependencies]
+# depends_on=
+# depended_on_by=
+# lock=
+

@@ -108,7 +108,7 @@ add_pkg_data() {
 
     sed -i "s@#\s*\[General\]@\0\n#\ $1=$2@" $PACKAGE_PATH/$3/PKGBUILD
 
-    echo "Successfully set key $1 to package $3 with value $2"
+    echo "Successfully set key $1 to value $3 with value $2"
 }
 
 # Set a key in a package
@@ -152,6 +152,36 @@ delete_pkg_data() {
     delete_pkg_data $1 ${@:3}
 }
 
+run_operation() {
+    [ ! -z $(echo $1 | grep -- "\-C.*") ] \
+        && echo "Will attempt to create packages ${@:4}" \
+        && for package in ${@:4}
+        do
+                create_pkg $package
+        done
+
+    [ ! -z $(echo $1 | grep -- "\-M.*") ] \
+        && echo "Will attempt to set $2 to $3 for packages ${@:4}" \
+        && modify_pkg_data $2 $3 ${@:4}
+
+    [ ! -z $(echo $1 | grep -- "\-D.*") ] \
+        && echo "Will attempt to clear the value of $config_option for packages $packages" \
+        && delete_pkg_data $2 ${@:4}
+
+    [ ! -z $(echo $1 | grep -- "\-G.*") ] \
+        && echo "Will attempt to return the value of $config_option for packages $packages" \
+        && get_pkg_data $2 ${@:4}
+
+    newarg=$(echo $1 | sed 's@[\s\-]*.@@')
+
+    set -- "-$newarg" "${@:2}"
+
+    [ -z ${1:1} ] \
+        && exit
+
+    run_operation ${@:1}
+}
+
 # Handle the cases where we take in a configuration option
 [ ! -z $(echo $1 | grep -- "\-.*[MDG].*") ] \
     && config_option=$2 \
@@ -167,27 +197,4 @@ packages=$(echo ${@:2} | tr " " "\n" | sort -u | tr "\n" " ")
 echo "Will attempt to affect the following packages:"
 echo $packages
 
-[ ! -z $(echo $1 | grep -- "\-C.*") ] \
-    && echo "Will attempt to create packages $packages" \
-    && set -- "-${1:4}" "${@:3}" \
-    && for package in $packages
-       do
-            create_pkg $package
-       done
-
-[ ! -z $(echo $1 | grep -- "\-M.*") ] \
-    && echo "Will attempt to set $config_option to $config_value for packages $packages" \
-    && set -- "-${1:4}" "${@:3}" \
-    && modify_pkg_data $config_option $config_value $packages
-
-[ ! -z $(echo $1 | grep -- "\-D.*") ] \
-    && echo "Will attempt to clear the value of $config_option for packages $packages" \
-    && set -- "-${1:4}" "${@:3}" \
-    && delete_pkg_data $config_option $packages
-
-[ ! -z $(echo $1 | grep -- "\-G.*") ] \
-    && echo "Will attempt to return the value of $config_option for packages $packages" \
-    && set -- "-${1:4}" "${@:3}" \
-    && get_pkg_data $config_option $packages
-
-exit
+run_operation $1 $config_option $config_value $packages
