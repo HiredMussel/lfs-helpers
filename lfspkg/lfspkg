@@ -152,24 +152,43 @@ delete_pkg_data() {
     delete_pkg_data $1 ${@:3}
 }
 
+parse_arguments() {
+    [ ! -z $(echo $1 | grep -- "^\s*C.*") ] \
+        && echo " * Will attempt to create the packages"
+
+    [ ! -z $(echo $1 | grep -- "^\s*M.*") ] \
+        && echo " * Will attempt to set $2 to $3 for each package"
+
+    [ ! -z $(echo $1 | grep -- "^\s*D.*") ] \
+        && echo " * Will attempt to clear the value of $2 for each package"
+
+    [ ! -z $(echo $1 | grep -- "^\s*G.*") ] \
+        && echo " * Will return the value of $2 for each package"
+
+    newarg=$(echo $1 | sed 's@[\s\-]*.@@')
+
+    set -- "$newarg" "${@:2}"
+
+    [ -z $1 ] \
+        && return
+
+    parse_arguments ${@:1}
+}
+
 run_operation() {
     [ ! -z $(echo $1 | grep -- "\-C.*") ] \
-        && echo "Will attempt to create packages ${@:4}" \
         && for package in ${@:4}
         do
                 create_pkg $package
         done
 
     [ ! -z $(echo $1 | grep -- "\-M.*") ] \
-        && echo "Will attempt to set $2 to $3 for packages ${@:4}" \
         && modify_pkg_data $2 $3 ${@:4}
 
     [ ! -z $(echo $1 | grep -- "\-D.*") ] \
-        && echo "Will attempt to clear the value of $config_option for packages $packages" \
         && delete_pkg_data $2 ${@:4}
 
     [ ! -z $(echo $1 | grep -- "\-G.*") ] \
-        && echo "Will attempt to return the value of $config_option for packages $packages" \
         && get_pkg_data $2 ${@:4}
 
     newarg=$(echo $1 | sed 's@[\s\-]*.@@')
@@ -192,9 +211,21 @@ run_operation() {
     && config_value=$2 \
     && set -- "-${1}" "${@:3}"
 
+operations_to_run=$(echo $1 | sed 's@[\s\-]*@@')
+
 packages=$(echo ${@:2} | tr " " "\n" | sort -u | tr "\n" " ")
 
-echo "Will attempt to affect the following packages:"
+echo "This command will affect the following packages:"
+echo ""
 echo $packages
+
+echo ""
+echo "The following operations will be attempted in order:"
+
+parse_arguments $operations_to_run $config_option $config_value
+
+echo ""
+echo "Proceed?"
+echo ""
 
 run_operation $1 $config_option $config_value $packages
