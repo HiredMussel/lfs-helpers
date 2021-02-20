@@ -152,6 +152,20 @@ delete_pkg_data() {
     delete_pkg_data $1 ${@:3}
 }
 
+check_proceed() {
+echo $@
+read -n 1 -p "Proceed? ([Y]es or [N]o)" proceed
+
+case $proceed in
+    Y|y) echo "" && run_operation $@
+    ;;
+    N|n) echo "" && exit 
+    ;;
+    *) echo "" && check_proceed $@ 
+    ;;
+esac
+}
+
 parse_arguments() {
     [ ! -z $(echo $1 | grep -- "^\s*C.*") ] \
         && echo " * Create the packages"
@@ -231,7 +245,5 @@ echo "The following operations will be attempted in order:"
 parse_arguments $operations_to_run $config_option $config_value
 
 echo ""
-echo "Proceed?"
-echo ""
 
-run_operation $1 $config_option $config_value $packages
+check_proceed -$operations_to_run $config_option $config_value $packages
