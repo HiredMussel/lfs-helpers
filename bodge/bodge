@@ -153,17 +153,16 @@ delete_pkg_data() {
 }
 
 check_proceed() {
-echo $@
-read -n 1 -p "Proceed? ([Y]es or [N]o)" proceed
+    read -n 1 -p "Proceed? ([Y]es or [N]o)" proceed
 
-case $proceed in
-    Y|y) echo "" && run_operation $@
-    ;;
-    N|n) echo "" && exit 
-    ;;
-    *) echo "" && check_proceed $@ 
-    ;;
-esac
+    case $proceed in
+        Y|y) echo "" && run_operation $@
+        ;;
+        N|n) echo "" && exit 
+        ;;
+        *) echo "" && check_proceed $@ 
+        ;;
+    esac
 }
 
 parse_arguments() {
