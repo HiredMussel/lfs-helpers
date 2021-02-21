@@ -1,6 +1,7 @@
 #!/bin/bash
 
-PACKAGE_PATH=.
+PACKAGE_PATH=/home/buildbox/Development/lfs-helpers/bodge
+ROOT=/home/buildbox/Development/lfs-helpers/fakeroot/
 
 # Helper functions for creating and editing the package config
 
@@ -153,15 +154,20 @@ delete_pkg_data() {
 }
 
 install_package_files() {
-        for folder in $(cd $2 && find -type d)
-        do
-            mkdir -p $1$folder
-        done
+    for folder in $(cd $2 && find -type d)
+    do
+        mkdir -p $1$folder
+    done
 
-        for file in $(cd $2 && find \! -type d)
-        do
-            ln -sf $2${file:2} $1${file:2}
-        done
+    for file in $(cd $2 && find \! -type dl)
+    do
+        ln -sf $2${file:2} $1${file:2}
+    done
+
+    for link in $(cd $2 && find -lname $2)
+    do
+        ln -sf $2${link:2} $1${link:2}
+    done
 }
 
 check_proceed() {
