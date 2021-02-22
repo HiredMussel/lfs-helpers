@@ -4,15 +4,15 @@
 BODGE_CFLAGS=
 BODGE_CXXFLAGS=
 
-BODGE_DEFAULT_PACKAGE_PATH=/home/buildbox/Development/lfs-helpers/bodge
-BODGE_DEFAULT_ROOT=/home/buildbox/Development/lfs-helpers/fakeroot/
+BODGE_DEFAULT_PACKAGE_PATH=/home/alex/development/lfs-helpers/bodge
+BODGE_DEFAULT_ROOT=/home/alex/development/lfs-helpers/fakeroot
 
 # Put the global program variables into the expected formats
-[ ! -z $BODGE_PACKAGE_PATH ] \
+[ ! -z "$BODGE_PACKAGE_PATH" ] \
     && BODGE_PACKAGE_PATH=$BODGE_PACKAGE_PATH \
     || BODGE_PACKAGE_PATH=$BODGE_DEFAULT_PACKAGE_PATH
 
-[ ! -z $BODGE_ROOT ] \
+[ ! -z "$BODGE_ROOT" ] \
     && BODGE_ROOT=$BODGE_ROOT \
     || BODGE_ROOT=$BODGE_DEFAULT_ROOT
 
@@ -74,16 +74,20 @@ get_pkg_data() {
         && echo "No configuration option selected" \
         && return 1
 
-    [ $# -eq 1 ] \
+    config_option=$1
+    shift
+
+    [ $# -eq 0 ] \
         && return
 
-    [ ! -e $BODGE_PACKAGE_PATH/$2/PKGBUILD ] \
-        && echo "Could not find configuration for package $2" \
+    [ ! -e $BODGE_PACKAGE_PATH/$1/PKGBUILD ] \
+        && echo "Could not find configuration for package $1" \
         && return 3
 
-    sed -n "s@#\ *$1=\ *\(.*\)\($\)@\1@p" $BODGE_PACKAGE_PATH/$2/PKGBUILD
+    sed -n "s@#\ *$config_option=\ *\(.*\)\($\)@\1@p" $BODGE_PACKAGE_PATH/$1/PKGBUILD
 
-    get_pkg_data $1 $(echo $@ | shift 2)
+    shift
+    get_pkg_data $config_option $@
 }
 
 # Change a key in a package
@@ -96,16 +100,20 @@ change_pkg_data() {
         && echo "No new value for option $1 provided" \
         && return 2
 
-    [ $# -eq 2 ] \
+    config_option=$1
+    config_value=$2
+    shift 2
+
+    [ $# -eq 0 ] \
         && return
 
-    [ ! -e $BODGE_PACKAGE_PATH/$3/PKGBUILD ] \
+    [ ! -e $BODGE_PACKAGE_PATH/$1/PKGBUILD ] \
         && echo "Could not find package configuration" \
         && return 3
 
-    sed -i "s@\(#\ *$1=\).*@\1$2@" $BODGE_PACKAGE_PATH/$3/PKGBUILD
+    sed -i "s@\(#\ *$config_option=\).*@\1$config_value@" $BODGE_PACKAGE_PATH/$1/PKGBUILD
 
-    echo "Succesfully set $1 to $2 for package $3"
+    echo "Succesfully set $config_option to $config_value for package $1"
 }
 
 # Add a key to a package
@@ -118,16 +126,20 @@ add_pkg_data() {
         && echo "No configuration option selected" \
         && return 2
 
-    [ $# -eq 2 ] \
+    config_option=$1
+    config_value=$2
+    shift 2
+
+    [ $# -eq 0 ] \
         && return
 
-    [ ! -e $BODGE_PACKAGE_PATH/$3/PKGBUILD ] \
+    [ ! -e $BODGE_PACKAGE_PATH/$1/PKGBUILD ] \
         && echo "Could not find package configuration" \
         && return 3
 
-    sed -i "s@#\ *\[General\]@\0\n#\ $1=$2@" $BODGE_PACKAGE_PATH/$3/PKGBUILD
+    sed -i "s@#\ *\[General\]@\0\n#\ $config_option=$config_value@" $BODGE_PACKAGE_PATH/$1/PKGBUILD
 
-    echo "Successfully set key $1 to value $3 with value $2"
+    echo "Successfully set key $config_option to value $config_value for package $1"
 }
 
 # Set a key in a package
@@ -140,19 +152,26 @@ modify_pkg_data() {
         && echo "No new value for option $1 provided" \
         && return 2
 
-    [ $# -eq 2 ] \
+    config_option=$1
+    config_value=$2
+    shift 2
+
+    [ $# -eq 0 ] \
         && return
 
-    [ ! -e $BODGE_PACKAGE_PATH/$3/PKGBUILD ] \
-        && echo "Could not find configuration for package $3" \
+    [ ! -e $BODGE_PACKAGE_PATH/$1/PKGBUILD ] \
+        && echo "Could not find configuration for package $1" \
         && return 3
 
-    change_pkg_data $1 $2 $3
+    change_pkg_data $config_option $config_value $1
 
-    [ -z $(get_pkg_data $1 $3) ] \
-        && add_pkg_data $1 $2 $3
-    
-    modify_pkg_data $1 $2 $(echo $@ | shift 3)
+    package_exists=$(get_pkg_data $config_option $1)
+
+    [ -z "$package_exists" ] \
+        && add_pkg_data $config_option $config_value $1
+
+    shift
+    modify_pkg_data $config_option $config_value $@
 }
 
 # Delete a key in a package
@@ -161,19 +180,27 @@ delete_pkg_data() {
         && echo "No key to delete selected" \
         && return 1
 
-    [ $# -eq 1 ] \
+    config_option=$1
+    shift
+
+    [ $# -eq 0 ] \
         && return
 
-    sed -i "s@\(#\ *$1=\).*@\1@" $BODGE_PACKAGE_PATH/$2/PKGBUILD
+    sed -i "s@\(#\ *$config_option=\).*@\1@" $BODGE_PACKAGE_PATH/$1/PKGBUILD
 
-    echo "Successfully cleared value of $1 for package $2"
+    echo "Successfully cleared value of $config_option for package $1"
 
-    delete_pkg_data $1 $(echo $@ | shift 2)
+    shift
+    delete_pkg_data $config_option $@
 }
 
 # Generalised installation script - works by linking all files to the install location
 
 install_package_files() {
+    [ ! -d $2 ] \
+        && echo "Installation folder does not exist!" \
+        && return 1
+
     for folder in $(cd $2 && find -type d)
     do
         mkdir -p $1$folder
@@ -181,14 +208,15 @@ install_package_files() {
 
     for file in $(cd $2 && find \! -type d,l)
     do
-        [ ! -f $1${file:2} ] && ln -sf $2${file:2} $1${file:2}
+        [ ! -f $1$(echo $file | awk '{print substr($1,2)}') ] \
+            && ln -sf $2$(echo $file | awk '{print substr($1,2)}') $1$(echo $file | awk '{print substr($1,2)}')
     done
 
     for link in $(cd $2 && find -type l)
     do
-        [ ! -f $1${link:2} ] \
-            && [ ! -z $(readlink -f $2${link:2} | grep $2) ] \
-            && ln -sf $2${link:2} $1${link:2}
+        [ ! -f $1$(echo $link | awk '{print substr($1,2)}') ] \
+            && [ ! -z $(readlink -f $2$(echo $link | awk '{print substr($1,2)}') | grep $2) ] \
+            && ln -sf $2$(echo $link | awk '{print substr($1,2)}') $1$(echo $link | awk '{print substr($1,2)}')
     done
 }
 
@@ -198,7 +226,7 @@ install_package_files() {
 check_proceed() {
     read -p "Proceed? ([Y]es or [N]o)" proceed
 
-    proceed=${proceed:0:1}
+    proceed=$(echo $proceed | awk '{print substr($1,1,1)}')
 
     case $proceed in
         Y|y) echo "" && run_operation $@
@@ -212,84 +240,90 @@ check_proceed() {
 
 # Work out the functions to run
 parse_arguments() {
-    [ ! -z $(echo $1 | grep -- "^\ *C.*") ] \
+    [ ! -z "$(echo $1 | grep -- "^\ *C.*")" ] \
         && echo " * Create the packages"
 
-    [ ! -z $(echo $1 | grep -- "^\ *M.*") ] \
+    [ ! -z "$(echo $1 | grep -- "^\ *M.*")" ] \
         && echo " * Set $2 to $3 for each package"
 
-    [ ! -z $(echo $1 | grep -- "^\ *D.*") ] \
+    [ ! -z "$(echo $1 | grep -- "^\ *D.*")" ] \
         && echo " * Clear the value of $2 for each package"
 
-    [ ! -z $(echo $1 | grep -- "^\ *G.*") ] \
+    [ ! -z "$(echo $1 | grep -- "^\ *G.*")" ] \
         && echo " * Return the value of $2 for each package"
 
-    [ ! -z $(echo $1 | grep -- "^\ *I.*") ] \
+    [ ! -z "$(echo $1 | grep -- "^\ *I.*")" ] \
         && echo " * Install each package to $BODGE_ROOT"
 
     newarg=$(echo $1 | sed 's@[\ \-]*.@@')
+    shift
 
-    set -- "$newarg" "$(echo $@ | shift 1)"
-
-    [ -z $1 ] \
+    [ -z $newarg ] \
         && return
 
-    parse_arguments $@
+    parse_arguments $newarg $@
 }
 
 # actually run each of the operations in order
 run_operation() {
-    [ ! -z $(echo $1 | grep -- "\-C.*") ] \
-        && for package in $(echo $@ | shift 3)
+    operations_to_run=$1
+    shift
+
+    config_option=$1
+    config_value=$2
+    shift 2
+
+    [ ! -z "$(echo $operations_to_run | grep -- "\-C.*")" ] \
+        && for package in $@
         do
             create_pkg $package
         done
 
-    [ ! -z $(echo $1 | grep -- "\-M.*") ] \
-        && modify_pkg_data $2 $3 $(echo $@ | shift 3)
+    [ ! -z "$(echo $operations_to_run | grep -- "\-M.*")" ] \
+        && modify_pkg_data $config_option $config_value $@
 
-    [ ! -z $(echo $1 | grep -- "\-D.*") ] \
-        && delete_pkg_data $2 $(echo $@ | shift 3)
+    [ ! -z "$(echo $operations_to_run | grep -- "\-D.*")" ] \
+        && delete_pkg_data $config_option $@
 
-    [ ! -z $(echo $1 | grep -- "\-G.*") ] \
-        && get_pkg_data $2 $(echo $@ | shift 3)
+    [ ! -z "$(echo $operations_to_run | grep -- "\-G.*")" ] \
+        && get_pkg_data $config_option $@
 
-    [ ! -z $(echo $1 | grep -- "\-I.*") ] \
-        && for package in $(echo $@ | shift 3)
+    [ ! -z "$(echo $operations_to_run | grep -- "\-I.*")" ] \
+        && for package in $@
         do
             install_package_files $BODGE_ROOT $BODGE_PACKAGE_PATH/$package/$(get_pkg_data current_version $package)/dist/
-            modify_pkg_data installed_version $(get_pkg_data current_version $package) $package
+            [ $? -eq 0 ] && modify_pkg_data installed_version $(get_pkg_data current_version $package) $package
         done
 
-    newarg=$(echo $1 | sed 's@[\ \-]*.@@')
+    newarg=$(echo $operations_to_run | sed 's@[\ \-]*.@@')
 
-    set -- "-$newarg" "$(echo $@ | shift 1)"
-
-    [ -z ${1:1} ] \
+    [ -z "$(echo $newarg | awk '{print substr($1,1,1)}')" ] \
         && exit
 
-    run_operation $@
+    run_operation -$newarg $config_option $config_value $@
 }
 
 # Main program flow
 
+# Pop the first argument off the stack
+operations_to_run=$(echo $1 | sed 's@[\ \-]*@@')
+shift
+
 # Handle the cases where we take in a configuration option
 config_option="config_option"
 
-[ ! -z $(echo $1 | grep -- "\-.*[MDG].*") ] \
-    && config_option=$2 \
-    && set -- "-$1" "$(echo $@ | shift 2)"
+[ ! -z "$(echo $operations_to_run | grep -- ".*[MDG].*")" ] \
+    && config_option=$1 \
+    && shift
 
 # Handle the cases where we take in a value for the configuration option
 config_value="config_value"
 
-[ ! -z $(echo $1 | grep -- "\-.*[M].*") ] \
-    && config_value=$2 \
-    && set -- "-$1" "$(echo $@ | shift 2)"
+[ ! -z "$(echo $operations_to_run | grep -- ".*[M].*")" ] \
+    && config_value=$1 \
+    && shift
 
-operations_to_run=$(echo $1 | sed 's@[\ \-]*@@')
-
-packages=$(echo $(echo $@ | shift 1) | tr " " "\n" | sort -u | tr "\n" " ")
+packages=$(echo $@ | tr " " "\n" | sort -u | tr "\n" " ")
 
 echo "This command will affect the following packages:"
 echo ""
