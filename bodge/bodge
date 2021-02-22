@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Declare global program variables
 BODGE_CFLAGS=
@@ -83,7 +83,7 @@ get_pkg_data() {
 
     sed -n "s@#\s*$1=\s*\(.*\)\($\)@\1@p" $BODGE_PACKAGE_PATH/$2/PKGBUILD
 
-    get_pkg_data $1 ${@:3}
+    get_pkg_data $1 $(echo $@ | shift 3)
 }
 
 # Change a key in a package
@@ -152,7 +152,7 @@ modify_pkg_data() {
     [ -z $(get_pkg_data $1 $3) ] \
         && add_pkg_data $1 $2 $3
     
-    modify_pkg_data $1 $2 ${@:4}
+    modify_pkg_data $1 $2 $(echo $@ | shift 4)
 }
 
 # Delete a key in a package
@@ -168,7 +168,7 @@ delete_pkg_data() {
 
     echo "Successfully cleared value of $1 for package $2"
 
-    delete_pkg_data $1 ${@:3}
+    delete_pkg_data $1 $(echo $@ | shift 3)
 }
 
 # Generalised installation script - works by linking all files to the install location
@@ -184,9 +184,11 @@ install_package_files() {
         [ ! -f $1${file:2} ] && ln -sf $2${file:2} $1${file:2}
     done
 
-    for link in $(cd $2 && find -lname "$PWD/**")
+    for link in $(cd $2 && find -type l)
     do
-        [ ! -f $1${link:2} ] && ln -sf $2${link:2} $1${link:2}
+        [ ! -f $1${link:2} ] \
+            && [ ! -z $(readlink -f $2${link:2} | grep $2) ] \
+            && ln -sf $2${link:2} $1${link:2}
     done
 }
 
@@ -227,33 +229,33 @@ parse_arguments() {
 
     newarg=$(echo $1 | sed 's@[\s\-]*.@@')
 
-    set -- "$newarg" "${@:2}"
+    set -- "$newarg" "$(echo $@ | shift 2)"
 
     [ -z $1 ] \
         && return
 
-    parse_arguments ${@:1}
+    parse_arguments $(echo $@ | shift 1)
 }
 
 # actually run each of the operations in order
 run_operation() {
     [ ! -z $(echo $1 | grep -- "\-C.*") ] \
-        && for package in ${@:4}
+        && for package in $(echo $@ | shift 4)
         do
-                create_pkg $package
+            create_pkg $package
         done
 
     [ ! -z $(echo $1 | grep -- "\-M.*") ] \
-        && modify_pkg_data $2 $3 ${@:4}
+        && modify_pkg_data $2 $3 $(echo $@ | shift 4)
 
     [ ! -z $(echo $1 | grep -- "\-D.*") ] \
-        && delete_pkg_data $2 ${@:4}
+        && delete_pkg_data $2 $(echo $@ | shift 4)
 
     [ ! -z $(echo $1 | grep -- "\-G.*") ] \
-        && get_pkg_data $2 ${@:4}
+        && get_pkg_data $2 $(echo $@ | shift 4)
 
     [ ! -z $(echo $1 | grep -- "\-I.*") ] \
-        && for package in ${@:4}
+        && for package in $(echo $@ | shift 4)
         do
             install_package_files $BODGE_ROOT $BODGE_PACKAGE_PATH/$package/$(get_pkg_data current_version $package)/dist/
             modify_pkg_data installed_version $(get_pkg_data current_version $package) $package
@@ -261,12 +263,12 @@ run_operation() {
 
     newarg=$(echo $1 | sed 's@[\s\-]*.@@')
 
-    set -- "-$newarg" "${@:2}"
+    set -- "-$newarg" "$(echo $@ | shift 2)"
 
     [ -z ${1:1} ] \
         && exit
 
-    run_operation ${@:1}
+    run_operation $(echo $@ | shift 1)
 }
 
 # Main program flow
@@ -276,20 +278,20 @@ config_option="config_option"
 
 [ ! -z $(echo $1 | grep -- "\-.*[MDG].*") ] \
     && config_option=$2 \
-    && set -- "-${1}" "${@:3}"
+    && set -- "-${1}" "$(echo $@ | shift 3)"
 
 # Handle the cases where we take in a value for the configuration option
 config_value="config_value"
 
 [ ! -z $(echo $1 | grep -- "\-.*[M].*") ] \
     && config_value=$2 \
-    && set -- "-${1}" "${@:3}"
+    && set -- "-${1}" "$(echo $@ | shift 3)"
 
 operations_to_run=$(echo $1 | sed 's@[\s\-]*@@')
 
 echo $@
 
-packages=$(echo ${@:2} | tr " " "\n" | sort -u | tr "\n" " ")
+packages=$(echo $(echo $@ | shift 2) | tr " " "\n" | sort -u | tr "\n" " ")
 
 echo "This command will affect the following packages:"
 echo ""
