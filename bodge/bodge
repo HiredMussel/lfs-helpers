@@ -1,20 +1,17 @@
 #!/bin/bash
 
 # Declare global program variables
-[ ! -z $PACKAGE_PATH ] \
-    && PACKAGE_PATH=$PACKAGE_PATH \
-    || PACKAGE_PATH=/home/buildbox/Development/lfs-helpers/bodge
+[ ! -z $BODGE_PACKAGE_PATH ] \
+    && BODGE_PACKAGE_PATH=$BODGE_PACKAGE_PATH \
+    || BODGE_PACKAGE_PATH=/home/buildbox/Development/lfs-helpers/bodge
 
-[ ! -z $ROOT ] \
-    && ROOT=$ROOT \
-    || ROOT=/home/buildbox/Development/lfs-helpers/fakeroot/
+[ ! -z $BODGE_ROOT ] \
+    && BODGE_ROOT=$BODGE_ROOT \
+    || BODGE_ROOT=/home/buildbox/Development/lfs-helpers/fakeBODGE_ROOT/
 
 # Put the global program variables into the expected formats
-PACKAGE_PATH=$(echo $PACKAGE_PATH | sed 's@/*$@@')
-ROOT=$(echo $ROOT | sed 's@/*$@/@')
-
-echo $PACKAGE_PATH
-echo $ROOT
+BODGE_PACKAGE_PATH=$(echo $BODGE_PACKAGE_PATH | sed 's@/*$@@')
+BODGE_ROOT=$(echo $BODGE_ROOT | sed 's@/*$@/@')
 
 # Helper functions for creating and editing the package config
 
@@ -26,21 +23,21 @@ create_pkg() {
         && echo "All packages created successfully" \
         && return 1
 
-    [ ! -d $PACKAGE_PATH ] \
-        && echo "Please create $PACKAGE_PATH to proceed" \
+    [ ! -d $BODGE_PACKAGE_PATH ] \
+        && echo "Please create $BODGE_PACKAGE_PATH to proceed" \
         && return 2
 
-    echo "Creating package $1 in $PACKAGE_PATH/$1"
+    echo "Creating package $1 in $BODGE_PACKAGE_PATH/$1"
 
-    [ ! -d $PACKAGE_PATH/$1 ] \
-        && mkdir $PACKAGE_PATH/$1
+    [ ! -d $BODGE_PACKAGE_PATH/$1 ] \
+        && mkdir $BODGE_PACKAGE_PATH/$1
 
-    [ -e $PACKAGE_PATH/$1/PKGBUILD ] \
+    [ -e $BODGE_PACKAGE_PATH/$1/PKGBUILD ] \
         && echo "Package $1 already exists" \
         && return 3
 
-    touch $PACKAGE_PATH/$1/PKGBUILD
-    cat << EOF > $PACKAGE_PATH/$1/PKGBUILD
+    touch $BODGE_PACKAGE_PATH/$1/PKGBUILD
+    cat << EOF > $BODGE_PACKAGE_PATH/$1/PKGBUILD
 #!/bin/bash
 
 # [General]
@@ -74,11 +71,11 @@ get_pkg_data() {
     [ $# -eq 1 ] \
         && return
 
-    [ ! -e $PACKAGE_PATH/$2/PKGBUILD ] \
+    [ ! -e $BODGE_PACKAGE_PATH/$2/PKGBUILD ] \
         && echo "Could not find configuration for package $2" \
         && return 3
 
-    sed -n "s@#\s*$1=\s*\(.*\)\($\)@\1@p" $PACKAGE_PATH/$2/PKGBUILD
+    sed -n "s@#\s*$1=\s*\(.*\)\($\)@\1@p" $BODGE_PACKAGE_PATH/$2/PKGBUILD
 
     get_pkg_data $1 ${@:3}
 }
@@ -96,11 +93,11 @@ change_pkg_data() {
     [ $# -eq 2 ] \
         && return
 
-    [ ! -e $PACKAGE_PATH/$3/PKGBUILD ] \
+    [ ! -e $BODGE_PACKAGE_PATH/$3/PKGBUILD ] \
         && echo "Could not find package configuration" \
         && return 3
 
-    sed -i "s@\(#\s*$1=\).*@\1$2@" $PACKAGE_PATH/$3/PKGBUILD
+    sed -i "s@\(#\s*$1=\).*@\1$2@" $BODGE_PACKAGE_PATH/$3/PKGBUILD
 
     echo "Succesfully set $1 to $2 for package $3"
 }
@@ -118,11 +115,11 @@ add_pkg_data() {
     [ $# -eq 2 ] \
         && return
 
-    [ ! -e $PACKAGE_PATH/$3/PKGBUILD ] \
+    [ ! -e $BODGE_PACKAGE_PATH/$3/PKGBUILD ] \
         && echo "Could not find package configuration" \
         && return 3
 
-    sed -i "s@#\s*\[General\]@\0\n#\ $1=$2@" $PACKAGE_PATH/$3/PKGBUILD
+    sed -i "s@#\s*\[General\]@\0\n#\ $1=$2@" $BODGE_PACKAGE_PATH/$3/PKGBUILD
 
     echo "Successfully set key $1 to value $3 with value $2"
 }
@@ -140,7 +137,7 @@ modify_pkg_data() {
     [ $# -eq 2 ] \
         && return
 
-    [ ! -e $PACKAGE_PATH/$3/PKGBUILD ] \
+    [ ! -e $BODGE_PACKAGE_PATH/$3/PKGBUILD ] \
         && echo "Could not find configuration for package $3" \
         && return 3
 
@@ -161,7 +158,7 @@ delete_pkg_data() {
     [ $# -eq 1 ] \
         && return
 
-    sed -i "s@\(#\s*$1=\).*@\1@" $PACKAGE_PATH/$2/PKGBUILD
+    sed -i "s@\(#\s*$1=\).*@\1@" $BODGE_PACKAGE_PATH/$2/PKGBUILD
 
     echo "Successfully cleared value of $1 for package $2"
 
@@ -218,7 +215,7 @@ parse_arguments() {
         && echo " * Return the value of $2 for each package"
 
     [ ! -z $(echo $1 | grep -- "^\s*I.*") ] \
-        && echo " * Install each package to $ROOT"
+        && echo " * Install each package to $BODGE_ROOT"
 
     newarg=$(echo $1 | sed 's@[\s\-]*.@@')
 
@@ -250,7 +247,7 @@ run_operation() {
     [ ! -z $(echo $1 | grep -- "\-I.*") ] \
         && for package in ${@:4}
         do
-            install_package_files $ROOT $PACKAGE_PATH/$package/$(get_pkg_data current_version $package)/dist/
+            install_package_files $BODGE_ROOT $BODGE_PACKAGE_PATH/$package/$(get_pkg_data current_version $package)/dist/
             modify_pkg_data installed_version $(get_pkg_data current_version $package) $package
         done
 
