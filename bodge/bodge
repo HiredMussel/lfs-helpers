@@ -1,7 +1,20 @@
 #!/bin/bash
 
-PACKAGE_PATH=/home/buildbox/Development/lfs-helpers/bodge
-ROOT=/home/buildbox/Development/lfs-helpers/fakeroot/
+# Declare global program variables
+[ ! -z $PACKAGE_PATH ] \
+    && PACKAGE_PATH=$PACKAGE_PATH \
+    || PACKAGE_PATH=/home/buildbox/Development/lfs-helpers/bodge
+
+[ ! -z $ROOT ] \
+    && ROOT=$ROOT \
+    || ROOT=/home/buildbox/Development/lfs-helpers/fakeroot/
+
+# Put the global program variables into the expected formats
+PACKAGE_PATH=$(echo $PACKAGE_PATH | sed 's@/*$@@')
+ROOT=$(echo $ROOT | sed 's@/*$@/@')
+
+echo $PACKAGE_PATH
+echo $ROOT
 
 # Helper functions for creating and editing the package config
 
@@ -37,6 +50,8 @@ create_pkg() {
 # version_listing=
 # version_scheme=
 # latest_version=
+# current_version=
+# installed_version=
 #
 # [Build]
 # distfiles=
@@ -159,7 +174,7 @@ install_package_files() {
         mkdir -p $1$folder
     done
 
-    for file in $(cd $2 && find \! -type dl)
+    for file in $(cd $2 && find \! -type d,l)
     do
         ln -sf $2${file:2} $1${file:2}
     done
@@ -170,8 +185,13 @@ install_package_files() {
     done
 }
 
+# Helper functions for managing the program flow
+
+# Prompt the user for input
 check_proceed() {
-    read -n 1 -p "Proceed? ([Y]es or [N]o)" proceed
+    read -p "Proceed? ([Y]es or [N]o)" proceed
+
+    proceed=${proceed:0:1}
 
     case $proceed in
         Y|y) echo "" && run_operation $@
@@ -183,6 +203,7 @@ check_proceed() {
     esac
 }
 
+# Work out the functions to run
 parse_arguments() {
     [ ! -z $(echo $1 | grep -- "^\s*C.*") ] \
         && echo " * Create the packages"
@@ -196,6 +217,9 @@ parse_arguments() {
     [ ! -z $(echo $1 | grep -- "^\s*G.*") ] \
         && echo " * Return the value of $2 for each package"
 
+    [ ! -z $(echo $1 | grep -- "^\s*I.*") ] \
+        && echo " * Install each package to $ROOT"
+
     newarg=$(echo $1 | sed 's@[\s\-]*.@@')
 
     set -- "$newarg" "${@:2}"
@@ -206,6 +230,7 @@ parse_arguments() {
     parse_arguments ${@:1}
 }
 
+# actually run each of the operations in order
 run_operation() {
     [ ! -z $(echo $1 | grep -- "\-C.*") ] \
         && for package in ${@:4}
@@ -222,6 +247,13 @@ run_operation() {
     [ ! -z $(echo $1 | grep -- "\-G.*") ] \
         && get_pkg_data $2 ${@:4}
 
+    [ ! -z $(echo $1 | grep -- "\-I.*") ] \
+        && for package in ${@:4}
+        do
+            install_package_files $ROOT $PACKAGE_PATH/$package/$(get_pkg_data current_version $package)/dist/
+            modify_pkg_data installed_version $(get_pkg_data current_version $package) $package
+        done
+
     newarg=$(echo $1 | sed 's@[\s\-]*.@@')
 
     set -- "-$newarg" "${@:2}"
@@ -232,8 +264,9 @@ run_operation() {
     run_operation ${@:1}
 }
 
-# Handle the cases where we take in a configuration option
+# Main program flow
 
+# Handle the cases where we take in a configuration option
 config_option="config_option"
 
 [ ! -z $(echo $1 | grep -- "\-.*[MDG].*") ] \
@@ -241,7 +274,6 @@ config_option="config_option"
     && set -- "-${1}" "${@:3}"
 
 # Handle the cases where we take in a value for the configuration option
-
 config_value="config_value"
 
 [ ! -z $(echo $1 | grep -- "\-.*[M].*") ] \
