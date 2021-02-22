@@ -1,15 +1,21 @@
 #!/bin/bash
 
 # Declare global program variables
+BODGE_CFLAGS=
+BODGE_CXXFLAGS=
+
+BODGE_DEFAULT_PACKAGE_PATH=/home/buildbox/Development/lfs-helpers/bodge
+BODGE_DEFAULT_ROOT=/home/buildbox/Development/lfs-helpers/fakeroot/
+
+# Put the global program variables into the expected formats
 [ ! -z $BODGE_PACKAGE_PATH ] \
     && BODGE_PACKAGE_PATH=$BODGE_PACKAGE_PATH \
-    || BODGE_PACKAGE_PATH=/home/buildbox/Development/lfs-helpers/bodge
+    || BODGE_PACKAGE_PATH=$BODGE_DEFAULT_PACKAGE_PATH
 
 [ ! -z $BODGE_ROOT ] \
     && BODGE_ROOT=$BODGE_ROOT \
-    || BODGE_ROOT=/home/buildbox/Development/lfs-helpers/fakeBODGE_ROOT/
+    || BODGE_ROOT=$BODGE_DEFAULT_ROOT
 
-# Put the global program variables into the expected formats
 BODGE_PACKAGE_PATH=$(echo $BODGE_PACKAGE_PATH | sed 's@/*$@@')
 BODGE_ROOT=$(echo $BODGE_ROOT | sed 's@/*$@/@')
 
