@@ -210,19 +210,19 @@ install_package_files() {
     do
         truncated_file=$(echo $file | awk '{print substr($1,3)}')
 
-        [ -f $1$truncated_file ] \
+        [ -e $1$truncated_file ] \
             && [ ! -h $1$truncated_file ] \
             && rm -f $2$truncated_file \
             && ln -sf $1$truncated_file $2$truncated_file
 
-        [ ! -f $1$truncated_file ] \
+        [ ! -e $1$truncated_file ] \
             && ln -sf $2$truncated_file $1$truncated_file
     done
 
     for link in $(cd $2 && find -type l)
     do
         truncated_link=$(echo $link | awk '{print substr($1,3)}')
-        [ ! -f $1$truncated_link ] \
+        [ ! -e $1$truncated_link ] \
             && [ ! -z $(readlink -f $2$truncated_link | grep $2) ] \
             && ln -sf $2$truncated_link $1$truncated_link
     done
