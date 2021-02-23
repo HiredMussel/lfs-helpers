@@ -4,8 +4,8 @@
 BODGE_CFLAGS=
 BODGE_CXXFLAGS=
 
-BODGE_DEFAULT_PACKAGE_PATH=/home/alex/development/lfs-helpers/bodge
-BODGE_DEFAULT_ROOT=/home/alex/development/lfs-helpers/fakeroot
+BODGE_DEFAULT_PACKAGE_PATH=/home/buildbox/Development/lfs-helpers/bodge
+BODGE_DEFAULT_ROOT=/home/buildbox/Development/lfs-helpers/fakeroot
 
 # Put the global program variables into the expected formats
 [ ! -z "$BODGE_PACKAGE_PATH" ] \
@@ -208,15 +208,17 @@ install_package_files() {
 
     for file in $(cd $2 && find \! -type d,l)
     do
-        [ ! -f $1$(echo $file | awk '{print substr($1,2)}') ] \
-            && ln -sf $2$(echo $file | awk '{print substr($1,2)}') $1$(echo $file | awk '{print substr($1,2)}')
+        truncated_file=$(echo $file | awk '{print substr($1,2)}')
+        [ ! -f $1$truncated_file ] \
+            && ln -sf $2$truncated_file $1$truncated_file
     done
 
     for link in $(cd $2 && find -type l)
     do
-        [ ! -f $1$(echo $link | awk '{print substr($1,2)}') ] \
-            && [ ! -z $(readlink -f $2$(echo $link | awk '{print substr($1,2)}') | grep $2) ] \
-            && ln -sf $2$(echo $link | awk '{print substr($1,2)}') $1$(echo $link | awk '{print substr($1,2)}')
+        truncated_link=$(echo $link | awk '{print substr($1,2)}')
+        [ ! -f $1$truncated_link ] \
+            && [ ! -z $(readlink -f $2$truncated_link | grep $2) ] \
+            && ln -sf $2$truncated_link $1$truncated_link
     done
 }
 
