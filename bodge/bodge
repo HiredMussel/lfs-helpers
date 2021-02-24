@@ -21,9 +21,13 @@ BODGE_ROOT=$(echo $BODGE_ROOT | sed 's@/*$@/@')
 
 # Helper functions for creating and editing the package config
 
-# Create the package - a package is a shell script containing instructions on
-# how the package is to be installed with the configuration options set by 
-# specific comments within the file.
+################################################################################
+# Create the package - a package is a shell script containing instructions on  #
+# how the package is to be installed with the configuration options set by     #
+# specific comments within the file.                                           #
+#                                                                              #
+# $@ The packages to create                                                    #
+################################################################################
 create_pkg() {
     [ $# -eq 0 ] \
         && echo "All packages created successfully" \
@@ -33,17 +37,20 @@ create_pkg() {
         && echo "Please create $BODGE_PACKAGE_PATH to proceed" \
         && return 2
 
-    echo "Creating package $1 in $BODGE_PACKAGE_PATH/$1"
+    package=$1
+    shift
 
-    [ ! -d $BODGE_PACKAGE_PATH/$1 ] \
-        && mkdir $BODGE_PACKAGE_PATH/$1
+    echo "Creating package $package in $BODGE_PACKAGE_PATH/$package"
 
-    [ -e $BODGE_PACKAGE_PATH/$1/PKGBUILD ] \
-        && echo "Package $1 already exists" \
+    [ ! -d $BODGE_PACKAGE_PATH/$package ] \
+        && mkdir $BODGE_PACKAGE_PATH/$package
+
+    [ -e $BODGE_PACKAGE_PATH/$package/PKGBUILD ] \
+        && echo "Package $package already exists" \
         && return 3
 
-    touch $BODGE_PACKAGE_PATH/$1/PKGBUILD
-    cat << EOF > $BODGE_PACKAGE_PATH/$1/PKGBUILD
+    touch $BODGE_PACKAGE_PATH/$package/PKGBUILD
+    cat << EOF > $BODGE_PACKAGE_PATH/$package/PKGBUILD
 #!/bin/sh
 
 # [General]
@@ -65,33 +72,50 @@ create_pkg() {
 # lock=
 
 EOF
-    echo "Created package $1 successfully"
+    echo "Created package $package successfully"
+
+    create_pkg $@
 }
 
-# Retrieve a key from a package
+################################################################################
+# Retrieve a key from a package                                                #
+#                                                                              #
+# $1 The key (config value) whose value should be retrieved                    #
+# $@ The packages from which the key should be retrieved                       #
+################################################################################
 get_pkg_data() {
+    # Handle possible wrong input
     [ $# -eq 0 ] \
         && echo "No configuration option selected" \
         && return 1
 
-    config_option=$1
-    shift
-
-    [ $# -eq 0 ] \
+    [ $# -eq 1 ] \
         && return
 
-    [ ! -e $BODGE_PACKAGE_PATH/$1/PKGBUILD ] \
-        && echo "Could not find configuration for package $1" \
+    # Assign the input variables
+    config_option=$1
+    package=$2
+    shift 2
+
+    [ ! -e $BODGE_PACKAGE_PATH/$package/PKGBUILD ] \
+        && echo "Could not find configuration for package $package" \
         && return 3
 
-    sed -n "s@#\ *$config_option=\ *\(.*\)\($\)@\1@p" $BODGE_PACKAGE_PATH/$1/PKGBUILD
+    sed -n  "s@#\ *$config_option=\ *\(.*\)\($\)@\1@p" \
+            $BODGE_PACKAGE_PATH/$package/PKGBUILD
 
-    shift
     get_pkg_data $config_option $@
 }
 
-# Change a key in a package
+################################################################################
+# Change a key in a package                                                    #
+#                                                                              #
+# $1 - the configuration option to change                                      #
+# $2 - the value to change the option to                                       #
+# $@ - the packages to change the value for                                    #
+################################################################################
 change_pkg_data() {
+    # Handle possible wrong input
     [ $# -eq 0 ] \
         && echo "No configuration option selected" \
         && return 1
@@ -100,23 +124,35 @@ change_pkg_data() {
         && echo "No new value for option $1 provided" \
         && return 2
 
-    config_option=$1
-    config_value=$2
-    shift 2
-
-    [ $# -eq 0 ] \
+    [ $# -eq 2 ] \
         && return
 
-    [ ! -e $BODGE_PACKAGE_PATH/$1/PKGBUILD ] \
+    # Assign the input variables to more semantic names
+    config_option=$1
+    config_value=$2
+    package=$3
+
+    [ ! -e $BODGE_PACKAGE_PATH/$package/PKGBUILD ] \
         && echo "Could not find package configuration" \
         && return 3
 
-    sed -i "s@\(#\ *$config_option=\).*@\1$config_value@" $BODGE_PACKAGE_PATH/$1/PKGBUILD
+    sed -i "s@\(#\ *$config_option=\).*@\1$config_value@" \
+           $BODGE_PACKAGE_PATH/$package/PKGBUILD
 
-    echo "Succesfully set $config_option to $config_value for package $1"
+    echo "Succesfully set $config_option to $config_value for package $package"
 }
 
-# Add a key to a package
+################################################################################
+# Add a key to a package                                                       #
+#                                                                              #
+# This function will add a key to the [General] section by default, but that   #
+# distinction doesn't affect the functions which retrieve and change it in the #
+# future. For more precise control, you can edit the PKGBUILD directly         #
+#                                                                              #
+# $1 The key (config option) you want to add                                   #
+# $2 The initial value of the added key                                        #
+# $3 The package to add the key to                                             #
+################################################################################
 add_pkg_data() {
     [ $# -eq 0 ] \
         && echo "No package name provided" \
@@ -128,6 +164,7 @@ add_pkg_data() {
 
     config_option=$1
     config_value=$2
+    package=$3
     shift 2
 
     [ $# -eq 0 ] \
@@ -137,9 +174,10 @@ add_pkg_data() {
         && echo "Could not find package configuration" \
         && return 3
 
-    sed -i "s@#\ *\[General\]@\0\n#\ $config_option=$config_value@" $BODGE_PACKAGE_PATH/$1/PKGBUILD
+    sed -i "s@#\ *\[General\]@\0\n#\ $config_option=$config_value@" \
+           $BODGE_PACKAGE_PATH/$1/PKGBUILD
 
-    echo "Successfully set key $config_option to value $config_value for package $1"
+    echo "Set key $config_option to value $config_value for $package"
 }
 
 # Set a key in a package
@@ -176,26 +214,27 @@ modify_pkg_data() {
 
 # Delete a key in a package
 delete_pkg_data() {
+    # Handle incorrect input
     [ $# -eq 0 ] \
         && echo "No key to delete selected" \
         && return 1
 
+    # Pop input variables off the argument stack
     config_option=$1
-    shift
+    package=$2
+    shift 2
 
     [ $# -eq 0 ] \
         && return
 
-    sed -i "s@\(#\ *$config_option=\).*@\1@" $BODGE_PACKAGE_PATH/$1/PKGBUILD
+    sed -i "s@\(#\ *$config_option=\).*@\1@" $BODGE_PACKAGE_PATH/$package/PKGBUILD
 
-    echo "Successfully cleared value of $config_option for package $1"
+    echo "Successfully cleared value of $config_option for package $package"
 
-    shift
     delete_pkg_data $config_option $@
 }
 
 # Generalised installation script - works by linking all files to the install location
-
 install_package_files() {
     [ ! -d $2 ] \
         && echo "Installation folder does not exist!" \
@@ -282,10 +321,7 @@ run_operation() {
     shift 2
 
     [ ! -z "$(echo $operations_to_run | grep -- "\-C.*")" ] \
-        && for package in $@
-        do
-            create_pkg $package
-        done
+        && create_pkg $@
 
     [ ! -z "$(echo $operations_to_run | grep -- "\-M.*")" ] \
         && modify_pkg_data $config_option $config_value $@
@@ -299,8 +335,14 @@ run_operation() {
     [ ! -z "$(echo $operations_to_run | grep -- "\-I.*")" ] \
         && for package in $@
         do
-            install_package_files $BODGE_ROOT $BODGE_PACKAGE_PATH/$package/$(get_pkg_data current_version $package)/dist/
-            [ $? -eq 0 ] && modify_pkg_data installed_version $(get_pkg_data current_version $package) $package
+            install_package_files \
+                $BODGE_ROOT \
+                $BODGE_PACKAGE_PATH/$package/$(get_pkg_data current_version $package)/dist/
+
+            [ $? -eq 0 ] \
+                && modify_pkg_data \
+                    installed_version $(get_pkg_data current_version $package) \
+                    $package
         done
 
     newarg=$(echo $operations_to_run | sed 's@[\ \-]*.@@')
@@ -331,6 +373,7 @@ config_value="config_value"
     && config_value=$1 \
     && shift
 
+# Process the packages
 packages=$(echo $@ | tr " " "\n" | sort -u | tr "\n" " ")
 
 echo "This command will affect the following packages:"
