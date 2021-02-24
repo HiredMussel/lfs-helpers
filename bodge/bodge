@@ -227,7 +227,8 @@ delete_pkg_data() {
     [ $# -eq 0 ] \
         && return
 
-    sed -i "s@\(#\ *$config_option=\).*@\1@" $BODGE_PACKAGE_PATH/$package/PKGBUILD
+    sed -i "s@\(#\ *$config_option=\).*@\1@" \
+           $BODGE_PACKAGE_PATH/$package/PKGBUILD
 
     echo "Successfully cleared value of $config_option for package $package"
 
@@ -335,13 +336,14 @@ run_operation() {
     [ ! -z "$(echo $operations_to_run | grep -- "\-I.*")" ] \
         && for package in $@
         do
+            version=$(get_pkg_data current_version $package)
             install_package_files \
                 $BODGE_ROOT \
-                $BODGE_PACKAGE_PATH/$package/$(get_pkg_data current_version $package)/dist/
+                $BODGE_PACKAGE_PATH/$package/$version/dist/
 
             [ $? -eq 0 ] \
                 && modify_pkg_data \
-                    installed_version $(get_pkg_data current_version $package) \
+                    installed_version $version \
                     $package
         done
 
