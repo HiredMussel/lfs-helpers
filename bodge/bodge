@@ -14,7 +14,7 @@
 # bash, dash, and busybox ash                                                  #
 ################################################################################
 
-#########                          Variables                           #########
+################################## Variables  ##################################
 
 # Declare global program variables
 BODGE_CFLAGS=
@@ -378,7 +378,7 @@ install_package_files() {
     done
 }
 
-#########        Helper functions for managing the program flow        #########
+################ Helper functions for managing the program flow ################
 
 ################################################################################
 # Prompt the user for input                                                    #
@@ -498,7 +498,7 @@ run_operation() {
     run_operation -$newarg $config_option $config_value $@
 }
 
-#########                      Main program flow                       #########
+############################## Main program flow  ##############################
 
 # Take in the operations we'll be running and pop that information off the 
 # argument "stack"
