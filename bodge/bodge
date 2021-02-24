@@ -20,8 +20,8 @@
 BODGE_CFLAGS=
 BODGE_CXXFLAGS=
 
-BODGE_DEFAULT_PACKAGE_PATH=/home/buildbox/Development/lfs-helpers/bodge
-BODGE_DEFAULT_ROOT=/home/buildbox/Development/lfs-helpers/fakeroot
+BODGE_DEFAULT_PACKAGE_PATH=/home/alex/development/lfs-helpers/bodge
+BODGE_DEFAULT_ROOT=/home/alex/development/lfs-helpers/fakeroot
 
 # Put the global program variables into the expected formats
 [ ! -z "$BODGE_PACKAGE_PATH" ] \
@@ -291,6 +291,39 @@ delete_pkg_data() {
 
     # Execute recursively to clear the value for all provided packages
     delete_pkg_data $config_option $@
+}
+
+################################################################################
+# Checks the most recent version of a package from a remote listing and sets   #
+# the latest_version configuration option accordingly                          #
+# For especially idiosyncratic versioning schemes, this will not work properly #
+#                                                                              #
+# $@ - the packages whose versions we want to update                           #
+################################################################################
+update_version() {
+    # If we have no more packages, exit gracefully
+    [ $? -eq 0 ] \
+        && return
+
+    # Assign our variables based on input and package metadata
+    package=$1
+    version_listing=$(get_pkg_data version_listing $package)
+    search_pattern=$(get_pkg_data version_scheme $package)
+    current_latest_version=$(get_pkg_data latest_version $package)
+    shift
+
+    # Grab the package listing and search it for the latest version
+    new_version=$(curl $version_listing \
+        | grep $search_pattern \
+        | sed -n "s@^.*\($search_pattern\).*\$@\1@p" \
+        | sort -Vur \
+        | head -n 1)
+
+    # Set the data to the new value, then continue to execute recursively
+    [ $new_version -eq $current_latest_version ] \
+        || modify_pkg_data latest_version $new_version $package
+
+    update_version $@
 }
 
 ################################################################################
