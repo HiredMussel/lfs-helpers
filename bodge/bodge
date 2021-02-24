@@ -40,7 +40,7 @@ BODGE_ROOT=$(echo $BODGE_ROOT | sed 's@/*$@/@')
 # how the package is to be installed with the configuration options set by     #
 # specific comments within the file.                                           #
 #                                                                              #
-# $@ The packages to create                                                    #
+# $@ - the packages to create                                                  #
 ################################################################################
 create_pkg() {
     # If no arguments remain, assume we have created all packages successfully
@@ -69,7 +69,7 @@ create_pkg() {
         && return 3
 
     touch $BODGE_PACKAGE_PATH/$package/PKGBUILD
-    
+
     # As far as bodge is concerned, a PKGBUILD is a shell script that executes
     # when called by the build_pkg function. Configuration options are set by
     # commenting them out and given in a .ini style format. To be safe, comments
@@ -104,8 +104,8 @@ EOF
 ################################################################################
 # Retrieve a key from a package                                                #
 #                                                                              #
-# $1 The key (config value) whose value should be retrieved                    #
-# $@ The packages from which the key should be retrieved                       #
+# $1 - the key (config value) whose value should be retrieved                  #
+# $@ - the packages from which the key should be retrieved                     #
 ################################################################################
 get_pkg_data() {
     # Handle possible wrong input
@@ -180,9 +180,9 @@ change_pkg_data() {
 # distinction doesn't affect the functions which retrieve and change it in the #
 # future. For more precise control, you can edit the PKGBUILD directly         #
 #                                                                              #
-# $1 The key (config option) you want to add                                   #
-# $2 The initial value of the added key                                        #
-# $3 The package to add the key to                                             #
+# $1 - the key (config option) you want to add                                 #
+# $2 - the initial value of the added key                                      #
+# $3 - the package to add the key to                                           #
 ################################################################################
 add_pkg_data() {
     # Check we have the corect number of arguments 
@@ -213,8 +213,19 @@ add_pkg_data() {
     echo "Set key $config_option to value $config_value for $package"
 }
 
-# Set a key in a package
+################################################################################
+# Set a key in a package                                                       #
+#                                                                              #
+# If the key is present in a package's configuration, calls change_pkg_data    #
+# to change that key's value to that provided.                                 #
+# If the key is not present, calls add_pkg_data to add it under [General]      #
+#                                                                              #
+# $1 - the key (config option) you want to add                                 #
+# $2 - the initial value of the added key                                      #
+# $3 - the package to add the key to                                           #
+################################################################################
 modify_pkg_data() {
+    # Check that both a configuration option and value have been provided
     [ $# -eq 0 ] \
         && echo "No configuration option selected" \
         && return 1
@@ -223,29 +234,40 @@ modify_pkg_data() {
         && echo "No new value for option $1 provided" \
         && return 2
 
-    config_option=$1
-    config_value=$2
-    shift 2
-
-    [ $# -eq 0 ] \
+    [ $# -eq 2 ] \
         && return
 
-    [ ! -e $BODGE_PACKAGE_PATH/$1/PKGBUILD ] \
-        && echo "Could not find configuration for package $1" \
+    # Pop the provided values off the argument stack
+    config_option=$1
+    config_value=$2
+    package=$3
+    shift 2
+
+    # Attempt to change the package data
+    [ ! -e $BODGE_PACKAGE_PATH/$package/PKGBUILD ] \
+        && echo "Could not find configuration for package $package" \
         && return 3
 
-    change_pkg_data $config_option $config_value $1
+    # Running change_pkg_data and add_pkg_data in this order guarantees it will
+    # be successfully changed
+    change_pkg_data $config_option $config_value $package
 
-    package_exists=$(get_pkg_data $config_option $1)
+    package_exists=$(get_pkg_data $config_option $package)
 
     [ -z "$package_exists" ] \
-        && add_pkg_data $config_option $config_value $1
+        && add_pkg_data $config_option $config_value $package
 
-    shift
+    # Execute modify_pkg_data recursively to change the desired value for all
+    # provided packages
     modify_pkg_data $config_option $config_value $@
 }
 
-# Delete a key in a package
+################################################################################
+# Delete a key in a package                                                    #
+#                                                                              #
+# $1 - the key whose value you want to clear                                   #
+# $@ - the packages for which you want to clear the value                      #
+################################################################################
 delete_pkg_data() {
     # Handle incorrect input
     [ $# -eq 0 ] \
@@ -265,25 +287,43 @@ delete_pkg_data() {
 
     echo "Successfully cleared value of $config_option for package $package"
 
+    # Execute recursively to clear the value for all provided packages
     delete_pkg_data $config_option $@
 }
 
-# Generalised installation script - works by linking all files to the install
-# location
+################################################################################
+# Installs a package from one directory to another                             #
+#                                                                              #
+# The second directory passed to this function will have its contents linked   #
+# into the first directory passed to it - all folders will be created in the   #
+# target destination if they do not exist, then any files will be              #
+# symbolically linked to                                                       #
+# Any files which already exist in the target directory will not be            #
+# overwritten, and will in fact replace the file which would overwrite it via  #
+# a symbolic link - this allows configuration files to be preserved, for       #
+# example                                                                      #
+#                                                                              #
+# $1 - the target directory                                                    #
+# $2 - the directory whose contents should be installed                        #
+################################################################################
 install_package_files() {
+    # Check we are installing a directory that actually exists
     [ ! -d $2 ] \
         && echo "Installation folder does not exist!" \
         && return 1
 
+    # Create all installed folders in the target directory
     for folder in $(cd $2 && find -type d)
     do
         mkdir -p $1$(echo $folder | awk '{print substr($1,3)}')
     done
 
+    # Symlink all files to the target directory
     for file in $(cd $2 && find \! -type d,l)
     do
         truncated_file=$(echo $file | awk '{print substr($1,3)}')
 
+        # Link configuration files back to the install directory
         [ -e $1$truncated_file ] \
             && [ ! -h $1$truncated_file ] \
             && rm -f $2$truncated_file \
@@ -293,6 +333,7 @@ install_package_files() {
             && ln -sf $2$truncated_file $1$truncated_file
     done
 
+    # Handle symlinks separately - no need to create daisy-chained links
     for link in $(cd $2 && find -type l)
     do
         truncated_link=$(echo $link | awk '{print substr($1,3)}')
@@ -302,7 +343,7 @@ install_package_files() {
     done
 }
 
-# Helper functions for managing the program flow
+#############    Helper functions for managing the program flow    #############
 
 # Prompt the user for input
 check_proceed() {
