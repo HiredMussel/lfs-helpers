@@ -1,4 +1,18 @@
 #!/bin/sh
+################################################################################
+# This is a "package manager" named bodge, so called both because its code is  #
+# itself a bodge and because it is hoped that it will be a useful tool for     #
+# bodging together systems with complicated dependencies and requirements      #
+#                                                                              #
+# The version management is symlink-style, with different versions able to be  #
+# built and kept on-disc then symlinked into the / hierarchy. Alternatively,   #
+# setting prefixes correctly allows multiple versions of the same package to   #
+# be present on the system - for example, a package requiring python 2 could   #
+# be linked to python 2 while python 3 is the system default.                  #
+#                                                                              #
+# This script should run on any POSIX-compliant shell - it has been tested on  #
+# bash, dash, and busybox ash                                                  #
+################################################################################
 
 # Declare global program variables
 BODGE_CFLAGS=
@@ -19,7 +33,7 @@ BODGE_DEFAULT_ROOT=/home/buildbox/Development/lfs-helpers/fakeroot
 BODGE_PACKAGE_PATH=$(echo $BODGE_PACKAGE_PATH | sed 's@/*$@@')
 BODGE_ROOT=$(echo $BODGE_ROOT | sed 's@/*$@/@')
 
-# Helper functions for creating and editing the package config
+######### Helper functions for creating and editing the package config #########
 
 ################################################################################
 # Create the package - a package is a shell script containing instructions on  #
@@ -29,17 +43,22 @@ BODGE_ROOT=$(echo $BODGE_ROOT | sed 's@/*$@/@')
 # $@ The packages to create                                                    #
 ################################################################################
 create_pkg() {
+    # If no arguments remain, assume we have created all packages successfully
     [ $# -eq 0 ] \
         && echo "All packages created successfully" \
         && return 1
 
+    # Check the package storage directory has been created properly
     [ ! -d $BODGE_PACKAGE_PATH ] \
         && echo "Please create $BODGE_PACKAGE_PATH to proceed" \
         && return 2
 
+    # Assign the variable name, then pop the first package off the "argument
+    # stack"
     package=$1
     shift
 
+    # Attempt to create the package
     echo "Creating package $package in $BODGE_PACKAGE_PATH/$package"
 
     [ ! -d $BODGE_PACKAGE_PATH/$package ] \
@@ -50,6 +69,11 @@ create_pkg() {
         && return 3
 
     touch $BODGE_PACKAGE_PATH/$package/PKGBUILD
+    
+    # As far as bodge is concerned, a PKGBUILD is a shell script that executes
+    # when called by the build_pkg function. Configuration options are set by
+    # commenting them out and given in a .ini style format. To be safe, comments
+    # in a PKGBUILD should be preceded by "##"
     cat << EOF > $BODGE_PACKAGE_PATH/$package/PKGBUILD
 #!/bin/sh
 
@@ -68,12 +92,12 @@ create_pkg() {
 #
 # [Dependencies]
 # depends_on=
-# depended_on_by=
-# lock=
 
 EOF
     echo "Created package $package successfully"
 
+    # Execute recursively to create every package provided to the create_pkg
+    # function
     create_pkg $@
 }
 
@@ -97,6 +121,7 @@ get_pkg_data() {
     package=$2
     shift 2
 
+    # Use sed to retrieve the value of $config_option for $package
     [ ! -e $BODGE_PACKAGE_PATH/$package/PKGBUILD ] \
         && echo "Could not find configuration for package $package" \
         && return 3
@@ -104,6 +129,8 @@ get_pkg_data() {
     sed -n  "s@#\ *$config_option=\ *\(.*\)\($\)@\1@p" \
             $BODGE_PACKAGE_PATH/$package/PKGBUILD
 
+    # Execute recursively on the remaining packages, resulting in all the values
+    # of $config_option for every provided package being printed
     get_pkg_data $config_option $@
 }
 
@@ -115,7 +142,7 @@ get_pkg_data() {
 # $@ - the packages to change the value for                                    #
 ################################################################################
 change_pkg_data() {
-    # Handle possible wrong input
+    # Check we have the correct number of arguments
     [ $# -eq 0 ] \
         && echo "No configuration option selected" \
         && return 1
@@ -124,6 +151,7 @@ change_pkg_data() {
         && echo "No new value for option $1 provided" \
         && return 2
 
+    # If no packages were provided, there is nothing to do
     [ $# -eq 2 ] \
         && return
 
@@ -132,6 +160,9 @@ change_pkg_data() {
     config_value=$2
     package=$3
 
+    # Use sed to modify the value of a config option already present in the file
+    # This fails silently, so shouldn't generally be used outside of the context
+    # modify_pkg_value below
     [ ! -e $BODGE_PACKAGE_PATH/$package/PKGBUILD ] \
         && echo "Could not find package configuration" \
         && return 3
@@ -154,6 +185,7 @@ change_pkg_data() {
 # $3 The package to add the key to                                             #
 ################################################################################
 add_pkg_data() {
+    # Check we have the corect number of arguments 
     [ $# -eq 0 ] \
         && echo "No package name provided" \
         && return 1
@@ -162,16 +194,17 @@ add_pkg_data() {
         && echo "No configuration option selected" \
         && return 2
 
+    [ $# -eq 2 ] \
+        && return
+
+    # Assign the input variables to more semantic variable names then pop them
     config_option=$1
     config_value=$2
     package=$3
-    shift 2
 
-    [ $# -eq 0 ] \
-        && return
-
-    [ ! -e $BODGE_PACKAGE_PATH/$1/PKGBUILD ] \
-        && echo "Could not find package configuration" \
+    # Add the new configuration option if the package exists
+    [ ! -e $BODGE_PACKAGE_PATH/$package/PKGBUILD ] \
+        && echo "Could not find package configuration for $package" \
         && return 3
 
     sed -i "s@#\ *\[General\]@\0\n#\ $config_option=$config_value@" \
@@ -235,7 +268,8 @@ delete_pkg_data() {
     delete_pkg_data $config_option $@
 }
 
-# Generalised installation script - works by linking all files to the install location
+# Generalised installation script - works by linking all files to the install
+# location
 install_package_files() {
     [ ! -d $2 ] \
         && echo "Installation folder does not exist!" \
