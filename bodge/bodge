@@ -14,6 +14,8 @@
 # bash, dash, and busybox ash                                                  #
 ################################################################################
 
+#########                          Variables                           #########
+
 # Declare global program variables
 BODGE_CFLAGS=
 BODGE_CXXFLAGS=
@@ -343,9 +345,11 @@ install_package_files() {
     done
 }
 
-#############    Helper functions for managing the program flow    #############
+#########        Helper functions for managing the program flow        #########
 
-# Prompt the user for input
+################################################################################
+# Prompt the user for input                                                    #
+################################################################################
 check_proceed() {
     read -p "Proceed? ([Y]es or [N]o)" proceed
 
@@ -361,8 +365,17 @@ check_proceed() {
     esac
 }
 
-# Work out the functions to run
+################################################################################
+# Work out the functions to run                                                #
+#                                                                              #
+# Print an ordered list of the operations bodge will perform in the current    #
+# configuration                                                                #
+#                                                                              #
+# $1 - the switches passed to bodge, which are an ordered list of the          #
+#      instructions to run                                                     #
+################################################################################
 parse_arguments() {
+    # Main statement to determine which operations we are running
     [ ! -z "$(echo $1 | grep -- "^\ *C.*")" ] \
         && echo " * Create the packages"
 
@@ -378,24 +391,41 @@ parse_arguments() {
     [ ! -z "$(echo $1 | grep -- "^\ *I.*")" ] \
         && echo " * Install each package to $BODGE_ROOT"
 
+    # Remove the argument we've just parsed from the list
     newarg=$(echo $1 | sed 's@[\ \-]*.@@')
     shift
 
+    # Parse the next argument, exiting when we have none left
     [ -z $newarg ] \
         && return
 
     parse_arguments $newarg $@
 }
 
-# actually run each of the operations in order
+################################################################################
+# Actually run each of the operations in order                                 #
+#                                                                              #
+# We go through each switch passed to bodge on the command line, in order.     #
+# Each one-letter switch corresponds to ond of the functions bodge can perform #
+# and they are each executed for each package in turn.                         #
+#                                                                              #
+# This is not necessarily the most efficient way to run it, but it avoids some #
+# problems with asynchronous builds.                                           #
+#                                                                              #
+# $1 - a list of single-letter switches which correspond to the operations     #
+#      we want to run                                                          #
+# $2 - the configuration option (required for some subfunctions)               #
+# $2 - the configuration value (required for some subfunctions)                #
+# $@ - the packages on which the operations will be run                        #
+################################################################################
 run_operation() {
+    # Take in the arguments and assign them to more semantic names
     operations_to_run=$1
-    shift
+    config_option=$2
+    config_value=$3
+    shift 3
 
-    config_option=$1
-    config_value=$2
-    shift 2
-
+    # Work out the first operation to run from operations_to_run
     [ ! -z "$(echo $operations_to_run | grep -- "\-C.*")" ] \
         && create_pkg $@
 
@@ -408,6 +438,9 @@ run_operation() {
     [ ! -z "$(echo $operations_to_run | grep -- "\-G.*")" ] \
         && get_pkg_data $config_option $@
 
+    # Because the install function is more general, it needs some extra 
+    # behaviour to have it run for every function passed in (TODO: move this
+    # to a helper function)
     [ ! -z "$(echo $operations_to_run | grep -- "\-I.*")" ] \
         && for package in $@
         do
@@ -422,6 +455,8 @@ run_operation() {
                     $package
         done
 
+    # Remove the operation we have just run from the list and contine to 
+    # execute recursively, exiting when we are done
     newarg=$(echo $operations_to_run | sed 's@[\ \-]*.@@')
 
     [ -z "$(echo $newarg | awk '{print substr($1,1,1)}')" ] \
@@ -430,9 +465,10 @@ run_operation() {
     run_operation -$newarg $config_option $config_value $@
 }
 
-# Main program flow
+#########                      Main program flow                       #########
 
-# Pop the first argument off the stack
+# Take in the operations we'll be running and pop that information off the 
+# argument "stack"
 operations_to_run=$(echo $1 | sed 's@[\ \-]*@@')
 shift
 
