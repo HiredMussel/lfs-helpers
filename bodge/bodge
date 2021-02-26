@@ -439,7 +439,7 @@ parse_arguments() {
 # Actually run each of the operations in order                                 #
 #                                                                              #
 # We go through each switch passed to bodge on the command line, in order.     #
-# Each one-letter switch corresponds to ond of the functions bodge can perform #
+# Each one-letter switch corresponds to one of the functions bodge can perform #
 # and they are each executed for each package in turn.                         #
 #                                                                              #
 # This is not necessarily the most efficient way to run it, but it avoids some #
@@ -448,7 +448,7 @@ parse_arguments() {
 # $1 - a list of single-letter switches which correspond to the operations     #
 #      we want to run                                                          #
 # $2 - the configuration option (required for some subfunctions)               #
-# $2 - the configuration value (required for some subfunctions)                #
+# $3 - the configuration value (required for some subfunctions)                #
 # $@ - the packages on which the operations will be run                        #
 ################################################################################
 run_operation() {
