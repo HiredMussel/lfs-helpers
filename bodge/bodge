@@ -1,4 +1,8 @@
 #!/bin/sh
+
+# TODO: Split these out so that they are called as separate utility funcs, and
+# test the possibility of using csh
+
 ################################################################################
 # This is a "package manager" named bodge, so called both because its code is  #
 # itself a bodge and because it is hoped that it will be a useful tool for     #
@@ -487,6 +491,9 @@ run_operation() {
                     installed_version $version \
                     $package
         done
+
+    # Todo: need functions linked here for switching between latest and stable
+    # versions of packages, and for actually executing the build script
 
     # Remove the operation we have just run from the list and contine to 
     # execute recursively, exiting when we are done
