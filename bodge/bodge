@@ -4,9 +4,7 @@
 # test the possibility of using csh
 
 ################################################################################
-# This is a "package manager" named bodge, so called both because its code is  #
-# itself a bodge and because it is hoped that it will be a useful tool for     #
-# bodging together systems with complicated dependencies and requirements      #
+# This is a "package manager" named bodge.                                     #
 #                                                                              #
 # The version management is symlink-style, with different versions able to be  #
 # built and kept on-disc then symlinked into the / hierarchy. Alternatively,   #
@@ -258,9 +256,9 @@ modify_pkg_data() {
     # be successfully changed
     change_pkg_data $config_option $config_value $package
 
-    package_exists=$(get_pkg_data $config_option $package)
+    option_exists=$(get_pkg_data $config_option $package)
 
-    [ -z "$package_exists" ] \
+    [ -z "$option_exists" ] \
         && add_pkg_data $config_option $config_value $package
 
     # Execute modify_pkg_data recursively to change the desired value for all
@@ -320,7 +318,7 @@ update_version() {
     new_version=$(curl $version_listing \
         | grep $search_pattern \
         | sed -n "s@^.*\($search_pattern\).*\$@\1@p" \
-        | sort -Vur \
+        | sort -t. -k 1,1n -k 2,2n -k 3,3n -k 4,4n \
         | head -n 1)
 
     # Set the data to the new value, then continue to execute recursively
@@ -382,6 +380,30 @@ install_package_files() {
     done
 }
 
+################################################################################
+# Installs a package by symlinking its files into the main file hierarchy      #
+#                                                                              #
+# $@ the list of packages you want to install                                  #
+################################################################################
+install_pkg() {
+    package=$1
+    shift
+
+    echo "Installing $package to $BODGE_ROOT"
+
+    version=$(get_pkg_data current_version $package)
+    install_package_files \
+        $BODGE_ROOT \
+        $BODGE_PACKAGE_PATH/$package/$version/dist/
+
+    [ $? -eq 0 ] \
+        && modify_pkg_data \
+            installed_version $version \
+            $package
+    
+    install_pkg $@
+}
+
 ################ Helper functions for managing the program flow ################
 
 ################################################################################
@@ -427,6 +449,15 @@ parse_arguments() {
 
     [ ! -z "$(echo $1 | grep -- "^\ *I.*")" ] \
         && echo " * Install each package to $BODGE_ROOT"
+    
+    [ ! -z "$(echo $1 | grep -- "^\ *V.*")" ] \
+        && echo " * Check the latest version of a package"
+    
+    [ ! -z "$(echo $1 | grep -- "^\ *L.*")" ] \
+        && echo " * Update the version of the package to install to latest"
+    
+    [ ! -z "$(echo $1 | grep -- "^\ *S.*")" ] \
+        && echo " * Update the version of the package to install to stable"
 
     # Remove the argument we've just parsed from the list
     newarg=$(echo $1 | sed 's@[\ \-]*.@@')
@@ -475,22 +506,29 @@ run_operation() {
     [ ! -z "$(echo $operations_to_run | grep -- "\-G.*")" ] \
         && get_pkg_data $config_option $@
 
-    # Because the install function is more general, it needs some extra 
-    # behaviour to have it run for every function passed in (TODO: move this
-    # to a helper function)
     [ ! -z "$(echo $operations_to_run | grep -- "\-I.*")" ] \
-        && for package in $@
-        do
-            version=$(get_pkg_data current_version $package)
-            install_package_files \
-                $BODGE_ROOT \
-                $BODGE_PACKAGE_PATH/$package/$version/dist/
+        && install_pkg $@
+    
+    [ ! -z "$(echo $operations_to_run | grep -- "\-V.*")" ] \
+        && update_version $@
 
-            [ $? -eq 0 ] \
-                && modify_pkg_data \
-                    installed_version $version \
-                    $package
-        done
+    [ ! -z "$(echo $operations_to_run | grep -- "\-L.*")" ] \
+        && for package in $@
+           do
+               modify_pkg_data \
+                  current_version \
+                  $(get_pkg_data latest_version $package) \
+                  $package
+           done
+
+    [ ! -z "$(echo $operations_to_run | grep -- "\-S.*")" ] \
+        && for package in $@
+           do
+               modify_pkg_data \
+                  current_version \
+                  $(get_pkg_data stable_version $package) \
+                  $package
+           done
 
     # Todo: need functions linked here for switching between latest and stable
     # versions of packages, and for actually executing the build script
