@@ -386,8 +386,10 @@ install_package_files() {
 # $@ the list of packages you want to install                                  #
 ################################################################################
 install_pkg() {
-    package=$1
-    shift
+    layer=$1
+
+    package=$2
+    shift 2
 
     echo "Installing $package to $BODGE_ROOT"
 
@@ -507,7 +509,7 @@ run_operation() {
         && get_pkg_data $config_option $@
 
     [ ! -z "$(echo $operations_to_run | grep -- "\-I.*")" ] \
-        && install_pkg $@
+        && install_pkg 0 $@
     
     [ ! -z "$(echo $operations_to_run | grep -- "\-V.*")" ] \
         && update_version $@
