@@ -387,23 +387,25 @@ install_package_files() {
 ################################################################################
 install_pkg() {
     layer=$1
+    shift
 
-    package=$2
-    shift 2
+    for package in $@
+    do
+        install_priority=$(get_pkg_data install_priority $package)
 
-    echo "Installing $package to $BODGE_ROOT"
+        [ layer -eq install_priority ] \
+            && echo "Installing $package to $BODGE_ROOT" \
+            && version=$(get_pkg_data current_version $package) \
+            && install_package_files \
+                $BODGE_ROOT \
+                $BODGE_PACKAGE_PATH/$package/$version/dist/ \
+            && [ $? -eq 0 ] \
+                && modify_pkg_data \
+                    installed_version $version \
+                    $package
+    done
 
-    version=$(get_pkg_data current_version $package)
-    install_package_files \
-        $BODGE_ROOT \
-        $BODGE_PACKAGE_PATH/$package/$version/dist/
-
-    [ $? -eq 0 ] \
-        && modify_pkg_data \
-            installed_version $version \
-            $package
-    
-    install_pkg $@
+    install_pkg $(($layer+1)) $@
 }
 
 ################ Helper functions for managing the program flow ################
