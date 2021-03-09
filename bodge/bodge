@@ -381,6 +381,20 @@ install_package_files() {
 }
 
 ################################################################################
+# Builds a package by running the instructions contained in the PKGBUILD       #
+# A compliant PKGBUILD should compile and install the package to the directory #
+# passed to its environment as $BODGE_PREFIX with $CFLAGS and $CXXFLAGS as set #
+# at the top of this file (unless there is some compatibility reason that this #
+# should not be used).                                                         #
+#                                                                              #
+# $BODGE_DESTDIR allows a staging directory to be set, in case the system is   #
+# being installed to a directory other than BODGE_ROOT (e.g. in case the       #
+# installation directory will later be chrooted into)                          #
+#                                                                              #
+# $@ the packages to build                                                     #
+################################################################################
+
+################################################################################
 # Installs a package by symlinking its files into the main file hierarchy      #
 #                                                                              #
 # $@ the list of packages you want to install                                  #
@@ -534,8 +548,7 @@ run_operation() {
                   $package
            done
 
-    # Todo: need functions linked here for switching between latest and stable
-    # versions of packages, and for actually executing the build script
+    # Todo: need function for actually executing the build script
 
     # Remove the operation we have just run from the list and contine to 
     # execute recursively, exiting when we are done
