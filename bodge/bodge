@@ -391,8 +391,11 @@ install_package_files() {
 # being installed to a directory other than BODGE_ROOT (e.g. in case the       #
 # installation directory will later be chrooted into)                          #
 #                                                                              #
-# $@ the packages to build                                                     #
+# $@ - the packages to build                                                   #
 ################################################################################
+build_pkg() {
+    
+}
 
 ################################################################################
 # Installs a package by symlinking its files into the main file hierarchy      #
