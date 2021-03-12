@@ -415,7 +415,7 @@ install_pkg() {
             && version=$(get_pkg_data current_version $package) \
             && install_package_files \
                 $BODGE_ROOT \
-                $BODGE_PACKAGE_PATH/$package/$version/dist/ \
+                $BODGE_PACKAGE_PATH/$package/dist/ \
             && [ $? -eq 0 ] \
                 && modify_pkg_data \
                     installed_version $version \
