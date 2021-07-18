@@ -105,6 +105,21 @@ get_sources {
     wget <DISTFILES> | \\
     -O $BODGE_PACKAGE_PATH/$package/src/$package-$VERSION.tar.<xz,gz>
 }
+
+build_pkg {
+    [ ! -d ./sources ] \\
+        && echo "no sources available to build package"
+        && return 1
+    cd ./sources
+
+    tar -x<z,j>vf <SOURCEFILE>
+
+    ./configure
+
+    make
+
+    make install
+}
 EOF
 
     echo "Created package $package successfully"
