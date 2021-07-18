@@ -1,0 +1,25 @@
+#!/bin/sh
+
+# [General]
+#
+# [Version]
+# stable_version=
+# latest_version=
+# current_version=
+# installed_version=
+#
+# [Installation]
+# install_priority=0
+
+check_version {
+    curl <VERSION_LISTING> | \
+    grep <REGEX_PATTERN> | \
+    grep <VERSION_SCHEME e.g "\d\+\.\d\+\.\d\+"> | \
+    sort <SORT_SCHEME e.g. "-t. -k 1,1nr -k 2,2nr -k 3,3nr -k 4,4nr"> | \
+    head -n 1
+}
+
+get_sources {
+    wget <DISTFILES> | \
+    -O /home/buildbox/Development/lfs-helpers/bodge/python/src/python-.tar.<xz,gz>
+}
